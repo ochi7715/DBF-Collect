@@ -38,6 +38,9 @@ export default function HomePage() {
               <Link href="/login" className="abs-home-button abs-home-button-secondary">
                 Sign in
               </Link>
+              <Link href="/signup" className="abs-home-button abs-home-button-secondary abs-home-button-signup">
+                Sign up
+              </Link>
               <Link href="/portal" className="abs-home-button abs-home-button-primary abs-home-button-portal">
                 Open portal
               </Link>
@@ -55,6 +58,9 @@ export default function HomePage() {
             <div className="abs-home-actions">
               <Link href="/login" className="abs-home-button abs-home-button-primary abs-home-button-large">
                 Sign in <ArrowRight size={18} />
+              </Link>
+              <Link href="/signup" className="abs-home-button abs-home-button-secondary abs-home-button-large">
+                Create account
               </Link>
               <Link href="/admin" className="abs-home-button abs-home-button-secondary abs-home-button-large">
                 Staff back office
@@ -206,7 +212,7 @@ function CriticalHomeStyles() {
           .abs-home-card h2{margin:1rem 0 0;color:#0f172a;font-size:1.125rem}.abs-home-card p{margin:.5rem 0 0;color:#475569;font-size:.925rem;line-height:1.65}
           @keyframes absHomeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}@keyframes absHomePulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.03)}}@keyframes absHomeSlide{0%,100%{transform:scaleX(.2);opacity:.2}50%{transform:scaleX(1);opacity:.72}}@keyframes absHomeTrace{0%,100%{transform:scaleX(.18)}55%{transform:scaleX(1)}}
           @media (max-width:1023px){.abs-home-side-panel{display:none}.abs-home-document,.abs-home-signature,.abs-home-flow,.abs-home-chip{opacity:.16}.abs-home-document-a{right:-8rem;top:14%;width:24rem}.abs-home-document-b{right:-5rem;bottom:7%;width:21rem}.abs-home-signature{right:2rem;bottom:27%}.abs-home-workflow-grid{grid-template-columns:1fr}}
-          @media (max-width:640px){.abs-home-shell{padding:1rem}.abs-home-button-portal{display:none}.abs-home-copy{padding:5rem 0 4rem}.abs-home-actions{align-items:stretch}.abs-home-actions .abs-home-button{width:100%}.abs-home h1{font-size:3.5rem}}
+          @media (max-width:640px){.abs-home-shell{padding:1rem}.abs-home-button-portal,.abs-home-button-signup{display:none}.abs-home-copy{padding:5rem 0 4rem}.abs-home-actions{align-items:stretch}.abs-home-actions .abs-home-button{width:100%}.abs-home h1{font-size:3.5rem}}
           @media (prefers-reduced-motion:reduce){.abs-home-document-a,.abs-home-document-b,.abs-home-signature,.abs-home-signature-line,.abs-home-flow,.abs-home-chip{animation:none}}
         `,
       }}

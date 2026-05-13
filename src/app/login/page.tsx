@@ -94,6 +94,14 @@ function LoginForm() {
           Email me a sign-in link
         </button>
       </form>
+      <div className="mt-6 grid gap-3 border-t border-slate-200 pt-6 text-sm sm:grid-cols-2">
+        <a href="/signup" className="focus-ring rounded-xl border border-slate-300 px-4 py-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50">
+          Create account
+        </a>
+        <a href="/forgot-password" className="focus-ring rounded-xl border border-slate-300 px-4 py-2.5 text-center font-semibold text-slate-700 hover:bg-slate-50">
+          Forgot password
+        </a>
+      </div>
     </LoginShell>
   );
 }

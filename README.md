@@ -92,7 +92,7 @@ select public.promote_user_to_admin('admin@example.com');
 ```
 
 5. Start the app and open `/login`.
-6. Sign in with the test user's email and password.
+6. Sign in with the test user's email and password. You can also use `/signup` to create a caregiver account, or `/forgot-password` to test reset links.
 7. Open `/admin`, create a child record, then create a caregiver invitation from that child record.
 8. To test caregiver login, create or invite a second Auth user with the invited email, sign in as that user, open the invitation link, and accept it.
 
@@ -103,6 +103,7 @@ http://localhost:3000/**
 http://localhost:3001/**
 https://your-production-domain.com/auth/callback
 https://your-production-domain.com/invite/**
+https://your-production-domain.com/update-password
 https://*-your-vercel-team.vercel.app/**
 ```
 
