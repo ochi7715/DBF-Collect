@@ -62,7 +62,7 @@ export default function HomePage() {
               <Link href="/signup" className="abs-home-button abs-home-button-secondary abs-home-button-large">
                 Create account
               </Link>
-              <Link href="/admin" className="abs-home-button abs-home-button-secondary abs-home-button-large">
+              <Link href="/login?redirectedFrom=%2Fadmin" className="abs-home-button abs-home-button-secondary abs-home-button-large">
                 Staff back office
               </Link>
             </div>

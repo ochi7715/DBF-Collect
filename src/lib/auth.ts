@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isMissingSupabasePublicConfigError } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -11,7 +12,13 @@ export async function getSessionUser() {
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
-  const supabase = await createSupabaseServerClient();
+  let supabase;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch (error) {
+    if (isMissingSupabasePublicConfigError(error)) redirect("/setup-required");
+    throw error;
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
