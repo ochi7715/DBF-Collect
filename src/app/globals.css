@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: #f6f8fb;
+  color: #172033;
+}
+
+input,
+select,
+textarea {
+  color: #172033;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+}
+
+.home-hero {
+  background: #f7fafb;
+}
+
+.home-document,
+.home-signature,
+.home-chip {
+  box-shadow: 0 24px 70px rgba(23, 32, 51, 0.14);
+}
+
+.home-document {
+  position: absolute;
+  border: 1px solid #d9e1e8;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+}
+
+.home-document-a {
+  right: clamp(1.5rem, 8vw, 8rem);
+  top: 17%;
+  width: min(31rem, 42vw);
+  padding: 1.35rem;
+  animation: homeFloat 8s ease-in-out infinite;
+}
+
+.home-document-b {
+  right: clamp(5rem, 18vw, 18rem);
+  bottom: 13%;
+  width: min(24rem, 34vw);
+  padding: 1.1rem;
+  animation: homeFloat 9s ease-in-out 1.2s infinite;
+}
+
+.home-signature {
+  position: absolute;
+  right: clamp(1rem, 6vw, 6rem);
+  bottom: 25%;
+  width: 13rem;
+  border: 1px solid #cad9d6;
+  border-radius: 8px;
+  background: #fffaf4;
+  padding: 1rem;
+  animation: homeFloat 7.5s ease-in-out 0.5s infinite;
+}
+
+.home-signature-line {
+  display: block;
+  height: 2.5rem;
+  margin-top: 0.9rem;
+  border-bottom: 3px solid #e0a05d;
+  border-radius: 8px;
+  transform-origin: left center;
+  animation: homeTrace 3.8s ease-in-out infinite;
+}
+
+.home-flow-line {
+  position: absolute;
+  height: 3px;
+  border-radius: 999px;
+  background: #1767cc;
+  opacity: 0.7;
+  transform-origin: left center;
+  animation: homeSlide 4.2s ease-in-out infinite;
+}
+
+.home-flow-line-a {
+  right: 29%;
+  top: 48%;
+  width: min(16rem, 20vw);
+}
+
+.home-flow-line-b {
+  right: 15%;
+  top: 62%;
+  width: min(10rem, 15vw);
+  animation-delay: 0.9s;
+}
+
+.home-chip {
+  position: absolute;
+  border-radius: 8px;
+  border: 1px solid #d9e1e8;
+  background: white;
+  padding: 0.55rem 0.8rem;
+  color: #145d56;
+  font-size: 0.875rem;
+  font-weight: 700;
+  animation: homePulse 3.8s ease-in-out infinite;
+}
+
+.home-chip-a {
+  right: clamp(18rem, 37vw, 36rem);
+  top: 35%;
+}
+
+.home-chip-b {
+  right: clamp(3rem, 12vw, 12rem);
+  top: 12%;
+  animation-delay: 1.4s;
+}
+
+@keyframes homeFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes homePulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.03);
+  }
+}
+
+@keyframes homeSlide {
+  0%,
+  100% {
+    transform: scaleX(0.2);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.72;
+  }
+}
+
+@keyframes homeTrace {
+  0%,
+  100% {
+    transform: scaleX(0.18);
+  }
+  55% {
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 1023px) {
+  .home-hero {
+    background: #f7fafb;
+  }
+
+  .home-document-a,
+  .home-document-b,
+  .home-signature,
+  .home-flow-line,
+  .home-chip {
+    opacity: 0.16;
+  }
+
+  .home-document-a {
+    right: -8rem;
+    top: 14%;
+    width: 24rem;
+  }
+
+  .home-document-b {
+    right: -5rem;
+    bottom: 7%;
+    width: 21rem;
+  }
+
+  .home-signature {
+    right: 2rem;
+    bottom: 27%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-document-a,
+  .home-document-b,
+  .home-signature,
+  .home-signature-line,
+  .home-flow-line,
+  .home-chip {
+    animation: none;
+  }
+}
