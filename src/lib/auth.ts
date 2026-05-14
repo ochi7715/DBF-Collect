@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { isMissingSupabasePublicConfigError } from "@/lib/config";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Profile, UserRole } from "@/lib/types";
 
@@ -37,24 +39,37 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   }
 
   if (!data) {
-    const { data: created, error: insertError } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        email: user.email ?? "",
-        full_name: user.user_metadata?.full_name ?? null,
-        role: "caregiver",
-      })
-      .select("*")
-      .single();
-    if (insertError) {
-      console.error("Profile create failed", insertError);
-      redirect("/auth/status?code=profile_create_failed");
-    }
-    return created as Profile;
+    return createMissingProfile(user);
   }
 
   return data as Profile;
+}
+
+async function createMissingProfile(user: User): Promise<Profile> {
+  const profile = {
+    id: user.id,
+    email: user.email ?? "",
+    full_name: user.user_metadata?.full_name ?? null,
+    role: "caregiver" as UserRole,
+    is_active: true,
+  };
+
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin
+      .from("profiles")
+      .upsert(profile, { onConflict: "id" })
+      .select("*")
+      .single();
+
+    if (!error && data) return data as Profile;
+
+    console.error("Profile create failed", error);
+  } catch (error) {
+    console.error("Profile create failed", error);
+  }
+
+  redirect("/auth/status?code=profile_create_failed");
 }
 
 export async function requireProfile(): Promise<Profile> {
