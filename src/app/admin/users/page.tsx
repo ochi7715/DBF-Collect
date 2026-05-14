@@ -66,28 +66,13 @@ export default async function AdminUsersPage({
             <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Search</button>
           </form>
 
-          <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <table className="min-w-[820px] table-fixed text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="w-[300px] px-4 py-3">User</th>
-                  <th className="w-[180px] px-4 py-3">Role</th>
-                  <th className="w-[170px] px-4 py-3">Status</th>
-                  <th className="w-[110px] px-4 py-3">Created</th>
-                  <th className="w-[100px] px-4 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {profiles.map((profile) => (
-                  <UserRow key={profile.id} profile={profile} currentAdminId={currentAdmin.id} />
-                ))}
-                {profiles.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">No users found.</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="grid gap-3">
+            {profiles.map((profile) => (
+              <UserCard key={profile.id} profile={profile} currentAdminId={currentAdmin.id} />
+            ))}
+            {profiles.length === 0 ? (
+              <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">No users found.</div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -95,56 +80,57 @@ export default async function AdminUsersPage({
   );
 }
 
-function UserRow({ profile, currentAdminId }: { profile: Profile; currentAdminId: string }) {
+function UserCard({ profile, currentAdminId }: { profile: Profile; currentAdminId: string }) {
   const isSelf = profile.id === currentAdminId;
 
   return (
-    <tr className="align-top">
-      <td className="px-4 py-3">
-        <form id={`profile-${profile.id}`} action={`/api/admin/users/${profile.id}`} method="post" className="grid gap-2">
-          <input type="hidden" name="returnTo" value="/admin/users" />
-          <input name="fullName" defaultValue={profile.full_name ?? ""} placeholder="Full name" className="focus-ring rounded-xl border border-slate-300 px-3 py-2" />
+    <form action={`/api/admin/users/${profile.id}`} method="post" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <input type="hidden" name="returnTo" value="/admin/users" />
+      <div className="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto] lg:items-end">
+        <label className="block">
+          <span className="text-sm font-medium text-slate-700">User</span>
+          <input name="fullName" defaultValue={profile.full_name ?? ""} placeholder="Full name" className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
           <p className="text-sm text-slate-500">{profile.email}</p>
-        </form>
-      </td>
-      <td className="px-4 py-3">
-        <select
-          form={`profile-${profile.id}`}
-          name="role"
-          defaultValue={profile.role}
-          disabled={isSelf}
-          className="focus-ring w-full min-w-36 rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
-        >
-          {ROLE_OPTIONS.map((role) => (
-            <option key={role} value={role}>
-              {capitalize(role)}
-            </option>
-          ))}
-        </select>
-        {isSelf ? <input form={`profile-${profile.id}`} type="hidden" name="role" value={profile.role} /> : null}
-      </td>
-      <td className="px-4 py-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <input
-            form={`profile-${profile.id}`}
-            type="checkbox"
-            name="isActive"
-            defaultChecked={profile.is_active}
-            disabled={isSelf}
-            className="size-4 rounded border-slate-300 text-brand-600 disabled:bg-slate-100"
-          />
-          Active
         </label>
-        {isSelf ? <input form={`profile-${profile.id}`} type="hidden" name="isActive" value="on" /> : null}
-        {isSelf ? <p className="mt-2 text-xs text-slate-500">Your admin access is protected.</p> : null}
-      </td>
-      <td className="px-4 py-3 text-slate-600">{formatDate(profile.created_at)}</td>
-      <td className="px-4 py-3">
-        <button form={`profile-${profile.id}`} className="focus-ring rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">
-          Save
-        </button>
-      </td>
-    </tr>
+        <label className="block">
+          <span className="text-sm font-medium text-slate-700">Role</span>
+          <select
+            name="role"
+            defaultValue={profile.role}
+            disabled={isSelf}
+            className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
+          >
+            {ROLE_OPTIONS.map((role) => (
+              <option key={role} value={role}>
+                {capitalize(role)}
+              </option>
+            ))}
+          </select>
+          {isSelf ? <input type="hidden" name="role" value={profile.role} /> : null}
+        </label>
+        <div>
+          <span className="text-sm font-medium text-slate-700">Status</span>
+          <label className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              name="isActive"
+              defaultChecked={profile.is_active}
+              disabled={isSelf}
+              className="size-4 rounded border-slate-300 text-brand-600 disabled:bg-slate-100"
+            />
+            Active
+          </label>
+          {isSelf ? <input type="hidden" name="isActive" value="on" /> : null}
+          {isSelf ? <p className="mt-2 text-xs text-slate-500">Protected admin</p> : null}
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <p className="text-sm text-slate-500">Created {formatDate(profile.created_at)}</p>
+          <button className="focus-ring w-full rounded-xl border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 lg:w-auto">
+            Save
+          </button>
+        </div>
+      </div>
+    </form>
   );
 }
 
