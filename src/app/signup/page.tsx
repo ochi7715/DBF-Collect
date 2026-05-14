@@ -25,10 +25,47 @@ function SignUpForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const emailRedirectTo =
+    typeof window === "undefined"
+      ? ""
+      : `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`;
+
+  async function resendVerificationEmail() {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setMessage("Enter your email address first, then resend the verification email.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: trimmedEmail,
+        options: { emailRedirectTo },
+      });
+
+      if (error) {
+        setMessage(getVerificationResendErrorMessage(error));
+        return;
+      }
+
+      setMessage("We sent a fresh verification email. Use the newest link in your inbox.");
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    const trimmedEmail = email.trim();
 
     if (password.length < 8) {
       setMessage("Password must be at least 8 characters.");
@@ -45,11 +82,11 @@ function SignUpForm() {
     try {
       const supabase = createSupabaseBrowserClient();
       result = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
         options: {
           data: { full_name: fullName || null },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+          emailRedirectTo,
         },
       });
     } catch (error) {
@@ -62,6 +99,11 @@ function SignUpForm() {
     const { data, error } = result;
 
     if (error) {
+      if (isExistingSignupError(error)) {
+        await resendVerificationEmail();
+        return;
+      }
+
       setMessage(error.message);
       return;
     }
@@ -72,7 +114,12 @@ function SignUpForm() {
       return;
     }
 
-    setMessage("Check your email to confirm your account, then sign in.");
+    if (data.user?.identities?.length === 0) {
+      await resendVerificationEmail();
+      return;
+    }
+
+    setMessage("Check your email to confirm your account, then sign in. Use the newest verification email if you requested more than one.");
   }
 
   return (
@@ -100,6 +147,14 @@ function SignUpForm() {
         <button disabled={loading} className="focus-ring w-full rounded-xl bg-brand-600 px-4 py-2.5 font-semibold text-white shadow-sm hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60">
           {loading ? "Creating account..." : "Create account"}
         </button>
+        <button
+          disabled={loading || !email.trim()}
+          type="button"
+          onClick={resendVerificationEmail}
+          className="focus-ring w-full rounded-xl border border-slate-300 px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Resend verification email
+        </button>
       </form>
       <p className="mt-6 text-center text-sm text-slate-600">
         Already have an account?{" "}
@@ -109,6 +164,30 @@ function SignUpForm() {
       </p>
     </AuthShell>
   );
+}
+
+function isExistingSignupError(error: { message?: string; code?: string; status?: number }) {
+  const message = error.message?.toLowerCase() ?? "";
+  return (
+    message.includes("already registered") ||
+    message.includes("already exists") ||
+    error.code === "user_already_exists" ||
+    error.code === "email_exists"
+  );
+}
+
+function getVerificationResendErrorMessage(error: { message?: string; status?: number }) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  if (message.includes("already confirmed")) {
+    return "That email is already verified. Sign in instead, or use forgot password if you do not remember the password.";
+  }
+
+  if (message.includes("rate") || error.status === 429) {
+    return "A verification email was sent recently. Wait a minute, then try resending it again.";
+  }
+
+  return error.message ?? "We could not resend the verification email. Please try again.";
 }
 
 function AuthShell({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
