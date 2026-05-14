@@ -37,6 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ inv
     entityId: invitation.id,
     action: "caregiver_invitation_revoked",
     details: { email: invitation.email },
+    request,
   });
 
   redirect(safeRedirect(parsed.returnTo, "/admin/caregivers"));

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, Home, LogOut, Search, ShieldCheck, Users } from "lucide-react";
+import { Activity, FileText, Home, LogOut, Search, ShieldCheck, Users } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import { isStaffRole } from "@/lib/auth";
 
@@ -42,6 +42,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
                 <NavLink href="/admin/documents" icon={<FileText size={18} />} label="Document inbox" />
                 <NavLink href="/admin/children" icon={<Search size={18} />} label="Child records" />
                 <NavLink href="/admin/caregivers" icon={<Users size={18} />} label="Caregivers" />
+                <NavLink href="/admin/audit" icon={<Activity size={18} />} label="Activity log" />
               </>
             ) : null}
           </nav>

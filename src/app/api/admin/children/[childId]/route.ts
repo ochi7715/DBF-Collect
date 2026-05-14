@@ -45,6 +45,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ chi
     entityId: childId,
     action: "child_updated",
     details: parsed,
+    request,
   });
 
   redirect(`/admin/children/${childId}`);

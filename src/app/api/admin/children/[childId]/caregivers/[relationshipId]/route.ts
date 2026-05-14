@@ -46,6 +46,7 @@ export async function POST(
     entityId: relationshipId,
     action: "caregiver_access_updated",
     details: parsed,
+    request,
   });
 
   redirect(`/admin/children/${childId}`);

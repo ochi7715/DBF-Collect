@@ -146,8 +146,16 @@ create table if not exists public.audit_logs (
   action text not null,
   details jsonb not null default '{}'::jsonb,
   ip_address text,
+  request_method text,
+  request_path text,
+  user_agent text,
   created_at timestamptz not null default now()
 );
+
+alter table public.audit_logs
+  add column if not exists request_method text,
+  add column if not exists request_path text,
+  add column if not exists user_agent text;
 
 create index if not exists idx_child_caregivers_child_id on public.child_caregivers(child_id);
 create index if not exists idx_child_caregivers_caregiver_id on public.child_caregivers(caregiver_id);
@@ -157,6 +165,9 @@ create index if not exists idx_child_documents_signature on public.child_intake_
 create index if not exists idx_invitations_token on public.caregiver_invitations(token);
 create index if not exists idx_invitations_child_status on public.caregiver_invitations(child_id, status);
 create index if not exists idx_audit_child_id_created_at on public.audit_logs(child_id, created_at desc);
+create index if not exists idx_audit_actor_id_created_at on public.audit_logs(actor_id, created_at desc);
+create index if not exists idx_audit_action_created_at on public.audit_logs(action, created_at desc);
+create index if not exists idx_audit_created_at on public.audit_logs(created_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
@@ -384,8 +395,7 @@ drop policy if exists "audit_authenticated_insert" on public.audit_logs;
 create policy "audit_staff_select" on public.audit_logs
 for select using (public.is_staff_user());
 
-create policy "audit_authenticated_insert" on public.audit_logs
-for insert with check (auth.uid() is not null);
+-- Audit logs are written by server-side code with the service role key.
 
 -- Private storage bucket for documents
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

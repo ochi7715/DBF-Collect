@@ -64,6 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ chi
       canUploadDocuments: parsed.canUploadDocuments,
       delivery,
     },
+    request,
   });
 
   const query = new URLSearchParams({ invitation: invitation.id, delivery });

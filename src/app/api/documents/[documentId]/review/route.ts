@@ -40,6 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
     entityId: documentId,
     action: "document_reviewed",
     details: parsed,
+    request,
   });
 
   redirect(`/admin/documents/${documentId}`);

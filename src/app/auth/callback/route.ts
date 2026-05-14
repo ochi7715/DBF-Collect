@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import type { EmailOtpType } from "@supabase/supabase-js";
+import type { EmailOtpType, SupabaseClient } from "@supabase/supabase-js";
 import { authStatusRedirect } from "@/lib/auth-redirects";
+import { writeAuditLog } from "@/lib/audit";
 import { safeRedirect } from "@/lib/utils";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
@@ -45,14 +46,33 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return authStatusRedirect(requestUrl.origin, "callback_exchange_failed");
+    await writeAuthCallbackAudit(supabase, request, next, "code");
     return response;
   }
 
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     if (error) return authStatusRedirect(requestUrl.origin, "callback_exchange_failed");
+    await writeAuthCallbackAudit(supabase, request, next, type);
     return response;
   }
 
   return authStatusRedirect(requestUrl.origin, "callback_missing_code");
+}
+
+async function writeAuthCallbackAudit(supabase: SupabaseClient, request: NextRequest, next: string, flow: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  await writeAuditLog({
+    actorId: user.id,
+    entityType: "auth_session",
+    entityId: user.id,
+    action: "auth_callback_completed",
+    details: { flow, next },
+    request,
+  });
 }

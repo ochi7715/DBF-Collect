@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     entityId: doc.id,
     action: "dropbox_webhook_received",
     details: { signatureRequestId, eventType, signerStatus, completed: isComplete },
+    request,
   });
 
   return new Response("Hello API Event Received", { status: 200 });

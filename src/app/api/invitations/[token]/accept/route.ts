@@ -4,7 +4,7 @@ import { getInvitationByToken, isInvitationExpired, normalizeEmail } from "@/lib
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function POST(_request: Request, { params }: { params: Promise<{ token: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const supabase = await createSupabaseServerClient();
   const {
@@ -20,6 +20,15 @@ export async function POST(_request: Request, { params }: { params: Promise<{ to
   const admin = createSupabaseAdminClient();
   if (isInvitationExpired(invitation)) {
     await admin.from("caregiver_invitations").update({ status: "expired" }).eq("id", invitation.id);
+    await writeAuditLog({
+      actorId: user.id,
+      childId: invitation.child_id,
+      entityType: "caregiver_invitation",
+      entityId: invitation.id,
+      action: "caregiver_invitation_expired",
+      details: { email: invitation.email },
+      request,
+    });
     redirect(`/invite/${token}?error=expired`);
   }
 
@@ -84,6 +93,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ to
     entityId: invitation.id,
     action: "caregiver_invitation_accepted",
     details: { email: userEmail },
+    request,
   });
 
   redirect(`/portal/children/${invitation.child_id}/documents`);

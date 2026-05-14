@@ -179,6 +179,12 @@ This starter implements the integration points and database tracking. For produc
 
 Caregiver invitations are stored in `caregiver_invitations` with a secure token, expiration, and child-level document permissions. `NEXT_PUBLIC_SITE_URL` is used to build invitation links. If Supabase Auth email delivery is not configured, staff can copy the generated invitation link from the child record or caregiver page.
 
+## Audit logging notes
+
+Staff can review sensitive activity from **Back office -> Activity log**. The log tracks child record changes, caregiver invitations, caregiver access edits, document uploads, document file opens, review decisions, Dropbox Sign events, email auth callbacks, and sign-outs.
+
+Audit rows include actor, child, action, request path, IP address, user agent, and structured details. Audit writes happen server-side with `SUPABASE_SERVICE_ROLE_KEY`; clients are not allowed to insert audit rows directly.
+
 ## HIPAA/security notes before production
 
 This code is a strong foundation, but production deployment should still include:

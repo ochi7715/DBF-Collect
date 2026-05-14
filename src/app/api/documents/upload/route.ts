@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     entityId: parsed.data.documentId,
     action: "document_uploaded",
     details: { fileName: safeName, fileSize: file.size, mimeType: file.type },
+    request,
   });
 
   return NextResponse.json({ ok: true });

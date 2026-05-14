@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     entityId: documentId,
     action: "dropbox_signature_sent",
     details: { signatureRequestId, caregiverEmail: caregiver.email },
+    request,
   });
 
   redirect(`/admin/documents/${documentId}`);

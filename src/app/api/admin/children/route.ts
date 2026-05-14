@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       lastName: parsed.lastName,
       externalPatientId: parsed.externalPatientId || null,
     },
+    request,
   });
 
   redirect(`/admin/children/${child.id}`);
