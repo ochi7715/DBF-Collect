@@ -42,7 +42,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     return createMissingProfile(user);
   }
 
-  return data as Profile;
+  return hydrateProfile(data as Profile, user);
 }
 
 async function createMissingProfile(user: User): Promise<Profile> {
@@ -62,7 +62,7 @@ async function createMissingProfile(user: User): Promise<Profile> {
       .select("*")
       .single();
 
-    if (!error && data) return data as Profile;
+    if (!error && data) return hydrateProfile(data as Profile, user);
 
     console.error("Profile create failed", error);
   } catch (error) {
@@ -95,4 +95,16 @@ export async function requireStaff() {
 
 export async function requireAdmin() {
   return requireRole(["admin"]);
+}
+
+function hydrateProfile(profile: Profile, user: User): Profile {
+  return {
+    ...profile,
+    avatar_url: profile.avatar_url ?? stringMetadataValue(user.user_metadata?.avatar_url),
+    avatar_path: profile.avatar_path ?? stringMetadataValue(user.user_metadata?.avatar_path),
+  };
+}
+
+function stringMetadataValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null;
 }

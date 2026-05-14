@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Activity, ClipboardList, FileText, Home, LogOut, Search, ShieldCheck, UserCog, Users } from "lucide-react";
+import { Activity, ClipboardList, FileText, Home, Search, ShieldCheck, UserCog, Users } from "lucide-react";
+import { AccountMenu } from "@/components/account-menu";
 import type { Profile } from "@/lib/types";
 import { isStaffRole } from "@/lib/auth";
 
@@ -18,17 +19,13 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
               <p className="text-xs text-slate-500">Phase 1 Intake Portal</p>
             </div>
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-slate-800">{profile.full_name ?? profile.email}</p>
-              <p className="text-xs capitalize text-slate-500">{profile.role}</p>
-            </div>
-            <form action="/auth/sign-out" method="post">
-              <button className="focus-ring inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                <LogOut size={16} /> Sign out
-              </button>
-            </form>
-          </div>
+          <AccountMenu
+            avatarUrl={profile.avatar_url}
+            email={profile.email}
+            initials={getInitials(profile)}
+            name={profile.full_name ?? profile.email}
+            role={profile.role}
+          />
         </div>
       </header>
 
@@ -54,6 +51,13 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
       </div>
     </div>
   );
+}
+
+function getInitials(profile: Profile) {
+  const source = profile.full_name?.trim() || profile.email;
+  const parts = source.split(/\s+/).filter(Boolean);
+  const initials = parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : source.slice(0, 2);
+  return (initials || "A").toUpperCase();
 }
 
 function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {

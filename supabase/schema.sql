@@ -55,11 +55,17 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
   full_name text,
+  avatar_url text,
+  avatar_path text,
   role public.app_role not null default 'caregiver',
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists avatar_url text,
+  add column if not exists avatar_path text;
 
 create table if not exists public.children (
   id uuid primary key default gen_random_uuid(),
@@ -268,17 +274,21 @@ language plpgsql security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, role, is_active)
+  insert into public.profiles (id, email, full_name, avatar_url, avatar_path, role, is_active)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'avatar_url',
+    new.raw_user_meta_data->>'avatar_path',
     'caregiver',
     true
   )
   on conflict (id) do update
     set email = excluded.email,
         full_name = coalesce(public.profiles.full_name, excluded.full_name),
+        avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+        avatar_path = coalesce(public.profiles.avatar_path, excluded.avatar_path),
         updated_at = now();
 
   return new;
@@ -291,11 +301,13 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_auth_user();
 
-insert into public.profiles (id, email, full_name, role, is_active)
+insert into public.profiles (id, email, full_name, avatar_url, avatar_path, role, is_active)
 select
   users.id,
   users.email,
   users.raw_user_meta_data->>'full_name',
+  users.raw_user_meta_data->>'avatar_url',
+  users.raw_user_meta_data->>'avatar_path',
   'caregiver',
   true
 from auth.users
@@ -303,6 +315,8 @@ where users.email is not null
 on conflict (id) do update
   set email = excluded.email,
       full_name = coalesce(public.profiles.full_name, excluded.full_name),
+      avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+      avatar_path = coalesce(public.profiles.avatar_path, excluded.avatar_path),
       updated_at = now();
 
 alter table public.profiles enable row level security;
@@ -396,6 +410,53 @@ create policy "audit_staff_select" on public.audit_logs
 for select using (public.is_staff_user());
 
 -- Audit logs are written by server-side code with the service role key.
+
+-- Public storage bucket for profile photos
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  2097152,
+  array[
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ]
+)
+on conflict (id) do update
+  set public = true,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "avatars_select_public" on storage.objects;
+drop policy if exists "avatars_insert_own_folder" on storage.objects;
+drop policy if exists "avatars_update_own_folder" on storage.objects;
+drop policy if exists "avatars_delete_own_folder" on storage.objects;
+
+create policy "avatars_select_public" on storage.objects
+for select using (bucket_id = 'profile-avatars');
+
+create policy "avatars_insert_own_folder" on storage.objects
+for insert with check (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "avatars_update_own_folder" on storage.objects
+for update using (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+) with check (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "avatars_delete_own_folder" on storage.objects
+for delete using (
+  bucket_id = 'profile-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
 
 -- Private storage bucket for documents
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
