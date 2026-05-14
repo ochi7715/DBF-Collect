@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Activity, FileText, Home, LogOut, Search, ShieldCheck, Users } from "lucide-react";
+import { Activity, ClipboardList, FileText, Home, LogOut, Search, ShieldCheck, UserCog, Users } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import { isStaffRole } from "@/lib/auth";
 
 export function AppShell({ profile, children }: { profile: Profile; children: React.ReactNode }) {
   const staff = isStaffRole(profile.role);
+  const admin = profile.role === "admin";
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -42,7 +43,9 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
                 <NavLink href="/admin/documents" icon={<FileText size={18} />} label="Document inbox" />
                 <NavLink href="/admin/children" icon={<Search size={18} />} label="Child records" />
                 <NavLink href="/admin/caregivers" icon={<Users size={18} />} label="Caregivers" />
+                <NavLink href="/admin/templates" icon={<ClipboardList size={18} />} label="Checklist setup" />
                 <NavLink href="/admin/audit" icon={<Activity size={18} />} label="Activity log" />
+                {admin ? <NavLink href="/admin/users" icon={<UserCog size={18} />} label="User access" /> : null}
               </>
             ) : null}
           </nav>

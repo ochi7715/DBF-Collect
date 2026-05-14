@@ -6,10 +6,12 @@ This is a runnable starter project for the Phase 1 ABS Connect patient portal sc
 - Staff/admin and parent/caregiver roles
 - Child records
 - Staff child onboarding, caregiver invitations, and access management
+- Admin user access management for staff/admin roles
 - Multiple caregivers per child
 - Multiple children per caregiver
 - Child switcher for caregivers
 - Intake document checklist
+- Back-office checklist template management
 - Child-level document uploads
 - Caregiver access controls for document viewing and uploading
 - Staff back-office document inbox and review flow
@@ -118,6 +120,8 @@ select public.promote_user_to_admin('admin@example.com');
 
 That inserts/updates the user's profile as `admin`.
 
+After the first admin exists, use **Back office -> User access** to invite staff/admin users, update roles, and deactivate accounts. The app prevents an admin from deactivating or demoting their own account from that screen.
+
 ## 6. Onboard a child and caregiver
 
 After creating your admin, use the staff pages:
@@ -175,13 +179,15 @@ https://your-production-domain.com/api/dropbox-sign/webhook
 
 This starter implements the integration points and database tracking. For production, configure Dropbox Sign templates with signer roles that match the code. The `src/lib/dropbox-sign.ts` module uses template-based signature requests and webhook status updates. Completed signed PDFs are downloaded from Dropbox Sign, stored in the private `intake-documents` bucket, and shown separately from the originally uploaded file.
 
+Staff can manage checklist items and Dropbox Sign template IDs from **Back office -> Checklist setup**. New active checklist items are automatically added to existing child records.
+
 ## Invitation notes
 
 Caregiver invitations are stored in `caregiver_invitations` with a secure token, expiration, and child-level document permissions. `NEXT_PUBLIC_SITE_URL` is used to build invitation links. If Supabase Auth email delivery is not configured, staff can copy the generated invitation link from the child record or caregiver page.
 
 ## Audit logging notes
 
-Staff can review sensitive activity from **Back office -> Activity log**. The log tracks child record changes, caregiver invitations, caregiver access edits, document uploads, document file opens, review decisions, Dropbox Sign events, email auth callbacks, and sign-outs.
+Staff can review sensitive activity from **Back office -> Activity log**. The log tracks child record changes, caregiver invitations, caregiver access edits, document uploads, document file opens, review decisions, Dropbox Sign events, checklist template changes, user access changes, email auth callbacks, and sign-outs.
 
 Audit rows include actor, child, action, request path, IP address, user agent, and structured details. Audit writes happen server-side with `SUPABASE_SERVICE_ROLE_KEY`; clients are not allowed to insert audit rows directly.
 

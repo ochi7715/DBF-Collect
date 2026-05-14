@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { ChildIntakeDocument, StaffDocumentInboxRow } from "@/lib/types";
 
 export async function ensureChildChecklist(childId: string) {
@@ -52,4 +53,22 @@ export async function getStaffDocumentInbox() {
 
   if (error) throw error;
   return data as StaffDocumentInboxRow[];
+}
+
+export async function ensureTemplateForExistingChildren(templateId: string) {
+  const admin = createSupabaseAdminClient();
+  const { data: children, error: childError } = await admin.from("children").select("id");
+  if (childError) throw childError;
+  if (!children?.length) return;
+
+  const { error } = await admin.from("child_intake_documents").upsert(
+    children.map((child) => ({
+      child_id: child.id,
+      template_id: templateId,
+      status: "not_started",
+    })),
+    { onConflict: "child_id,template_id", ignoreDuplicates: true }
+  );
+
+  if (error) throw error;
 }

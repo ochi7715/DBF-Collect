@@ -17,6 +17,10 @@ const ACTION_LABELS: Record<string, string> = {
   document_uploaded: "Document uploaded",
   dropbox_signature_sent: "Dropbox Sign request sent",
   dropbox_webhook_received: "Dropbox Sign webhook received",
+  intake_template_created: "Checklist item created",
+  intake_template_updated: "Checklist item updated",
+  user_access_updated: "User access updated",
+  user_invited: "User invited",
   user_signed_out: "User signed out",
 };
 
@@ -26,6 +30,8 @@ const ENTITY_LABELS: Record<string, string> = {
   child: "Child",
   child_caregiver: "Child caregiver",
   child_intake_document: "Intake document",
+  intake_document_template: "Checklist template",
+  profile: "User profile",
 };
 
 export default async function AdminAuditPage({

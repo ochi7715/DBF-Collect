@@ -1,16 +1,25 @@
 import Link from "next/link";
-import { Activity, FileText, Search, Users } from "lucide-react";
+import { Activity, ClipboardList, FileText, Search, UserCog, Users } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AdminHomePage() {
-  await requireStaff();
+  const profile = await requireStaff();
   const supabase = await createSupabaseServerClient();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ count: childCount }, { count: uploadedCount }, { count: caregiverCount }, { count: recentAuditCount }] = await Promise.all([
+  const [
+    { count: childCount },
+    { count: uploadedCount },
+    { count: caregiverCount },
+    { count: staffCount },
+    { count: templateCount },
+    { count: recentAuditCount },
+  ] = await Promise.all([
     supabase.from("children").select("*", { count: "exact", head: true }),
     supabase.from("child_intake_documents").select("*", { count: "exact", head: true }).neq("status", "not_started"),
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "caregiver"),
+    supabase.from("profiles").select("*", { count: "exact", head: true }).in("role", ["staff", "admin"]),
+    supabase.from("intake_document_templates").select("*", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("audit_logs").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
   ]);
 
@@ -22,18 +31,24 @@ export default async function AdminHomePage() {
         <p className="mt-2 text-slate-600">Review child records, caregiver access, and submitted intake documents.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Metric label="Child records" value={childCount ?? 0} />
         <Metric label="Submitted documents" value={uploadedCount ?? 0} />
         <Metric label="Caregiver accounts" value={caregiverCount ?? 0} />
+        <Metric label="Staff accounts" value={staffCount ?? 0} />
+        <Metric label="Active checklist items" value={templateCount ?? 0} />
         <Metric label="Audit events this week" value={recentAuditCount ?? 0} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <AdminCard href="/admin/documents" icon={<FileText size={24} />} title="Document inbox" body="Review uploads, approve or reject files, and send signature requests." />
         <AdminCard href="/admin/children" icon={<Search size={24} />} title="Child records" body="Search and manage child intake records." />
         <AdminCard href="/admin/caregivers" icon={<Users size={24} />} title="Caregivers" body="View caregiver accounts and authorized child relationships." />
+        <AdminCard href="/admin/templates" icon={<ClipboardList size={24} />} title="Checklist setup" body="Configure intake checklist items and Dropbox Sign template IDs." />
         <AdminCard href="/admin/audit" icon={<Activity size={24} />} title="Activity log" body="Review sensitive activity across records, uploads, invitations, and signatures." />
+        {profile.role === "admin" ? (
+          <AdminCard href="/admin/users" icon={<UserCog size={24} />} title="User access" body="Invite staff and manage account roles or active status." />
+        ) : null}
       </div>
     </section>
   );
