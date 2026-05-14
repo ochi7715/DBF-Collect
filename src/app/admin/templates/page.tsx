@@ -29,7 +29,7 @@ export default async function AdminTemplatesPage({
 
       {status ? (
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
-          {status === "created" ? "Checklist item created and synced to existing child records." : "Checklist item updated."}
+          {getStatusCopy(status)}
         </div>
       ) : null}
 
@@ -41,7 +41,7 @@ export default async function AdminTemplatesPage({
 
         <div className="grid gap-4">
           {templates.map((template) => (
-            <form key={template.id} action={`/api/admin/templates/${template.id}`} method="post" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article key={template.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
                   <h2 className="text-lg font-bold text-slate-950">{template.name}</h2>
@@ -49,12 +49,21 @@ export default async function AdminTemplatesPage({
                     {template.is_active ? "Active" : "Inactive"} | Sort {template.sort_order}
                   </p>
                 </div>
-                <button className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                  Save item
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button form={`template-${template.id}`} className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Save item
+                  </button>
+                  <form action={`/api/admin/templates/${template.id}/delete`} method="post">
+                    <button className="focus-ring rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                      Delete
+                    </button>
+                  </form>
+                </div>
               </div>
-              <TemplateFields template={template} submitLabel="Save item" hideSubmit />
-            </form>
+              <form id={`template-${template.id}`} action={`/api/admin/templates/${template.id}`} method="post">
+                <TemplateFields template={template} submitLabel="Save item" hideSubmit />
+              </form>
+            </article>
           ))}
           {templates.length === 0 ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
@@ -65,6 +74,21 @@ export default async function AdminTemplatesPage({
       </div>
     </section>
   );
+}
+
+function getStatusCopy(status: string) {
+  switch (status) {
+    case "created":
+      return "Checklist item created and synced to existing child records.";
+    case "deleted":
+      return "Checklist item deleted.";
+    case "deactivated":
+      return "Checklist item already had child records, so it was deactivated instead of deleted.";
+    case "updated":
+      return "Checklist item updated.";
+    default:
+      return "Checklist setup saved.";
+  }
 }
 
 function TemplateFields({

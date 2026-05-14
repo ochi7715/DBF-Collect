@@ -18,6 +18,8 @@ const ACTION_LABELS: Record<string, string> = {
   dropbox_signature_sent: "Dropbox Sign request sent",
   dropbox_webhook_received: "Dropbox Sign webhook received",
   intake_template_created: "Checklist item created",
+  intake_template_deactivated: "Checklist item deactivated",
+  intake_template_deleted: "Checklist item deleted",
   intake_template_updated: "Checklist item updated",
   user_access_updated: "User access updated",
   user_invited: "User invited",

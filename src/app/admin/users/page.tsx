@@ -66,15 +66,15 @@ export default async function AdminUsersPage({
             <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Search</button>
           </form>
 
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-[820px] table-fixed text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Created</th>
-                  <th className="px-4 py-3">Action</th>
+                  <th className="w-[300px] px-4 py-3">User</th>
+                  <th className="w-[180px] px-4 py-3">Role</th>
+                  <th className="w-[170px] px-4 py-3">Status</th>
+                  <th className="w-[110px] px-4 py-3">Created</th>
+                  <th className="w-[100px] px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -113,7 +113,7 @@ function UserRow({ profile, currentAdminId }: { profile: Profile; currentAdminId
           name="role"
           defaultValue={profile.role}
           disabled={isSelf}
-          className="focus-ring w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
+          className="focus-ring w-full min-w-36 rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-100"
         >
           {ROLE_OPTIONS.map((role) => (
             <option key={role} value={role}>
