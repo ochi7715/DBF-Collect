@@ -3,18 +3,53 @@
 
 create extension if not exists pgcrypto;
 
-create type public.app_role as enum ('caregiver', 'staff', 'admin');
-create type public.document_status as enum (
-  'not_started',
-  'uploaded',
-  'in_review',
-  'accepted',
-  'rejected',
-  'sent_for_signature',
-  'signed',
-  'completed'
-);
-create type public.invitation_status as enum ('pending', 'accepted', 'expired', 'revoked');
+do $$
+begin
+  create type public.app_role as enum ('caregiver', 'staff', 'admin');
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.app_role add value if not exists 'caregiver';
+alter type public.app_role add value if not exists 'staff';
+alter type public.app_role add value if not exists 'admin';
+
+do $$
+begin
+  create type public.document_status as enum (
+    'not_started',
+    'uploaded',
+    'in_review',
+    'accepted',
+    'rejected',
+    'sent_for_signature',
+    'signed',
+    'completed'
+  );
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.document_status add value if not exists 'not_started';
+alter type public.document_status add value if not exists 'uploaded';
+alter type public.document_status add value if not exists 'in_review';
+alter type public.document_status add value if not exists 'accepted';
+alter type public.document_status add value if not exists 'rejected';
+alter type public.document_status add value if not exists 'sent_for_signature';
+alter type public.document_status add value if not exists 'signed';
+alter type public.document_status add value if not exists 'completed';
+
+do $$
+begin
+  create type public.invitation_status as enum ('pending', 'accepted', 'expired', 'revoked');
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.invitation_status add value if not exists 'pending';
+alter type public.invitation_status add value if not exists 'accepted';
+alter type public.invitation_status add value if not exists 'expired';
+alter type public.invitation_status add value if not exists 'revoked';
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -131,13 +166,19 @@ begin
 end;
 $$;
 
+drop trigger if exists set_profiles_updated_at on public.profiles;
+
 create trigger set_profiles_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_children_updated_at on public.children;
+
 create trigger set_children_updated_at
 before update on public.children
 for each row execute function public.set_updated_at();
+
+drop trigger if exists set_child_documents_updated_at on public.child_intake_documents;
 
 create trigger set_child_documents_updated_at
 before update on public.child_intake_documents
@@ -219,17 +260,31 @@ alter table public.child_intake_documents enable row level security;
 alter table public.audit_logs enable row level security;
 
 -- Profiles
+drop policy if exists "profiles_select_self_or_staff" on public.profiles;
+drop policy if exists "profiles_insert_self" on public.profiles;
+drop policy if exists "profiles_update_self_name_or_staff" on public.profiles;
+drop policy if exists "profiles_update_self" on public.profiles;
+drop policy if exists "profiles_staff_update" on public.profiles;
+
 create policy "profiles_select_self_or_staff" on public.profiles
 for select using (id = auth.uid() or public.is_staff_user());
 
 create policy "profiles_insert_self" on public.profiles
-for insert with check (id = auth.uid());
+for insert with check (id = auth.uid() and role = 'caregiver');
 
-create policy "profiles_update_self_name_or_staff" on public.profiles
-for update using (id = auth.uid() or public.is_staff_user())
-with check (id = auth.uid() or public.is_staff_user());
+create policy "profiles_update_self" on public.profiles
+for update using (id = auth.uid())
+with check (id = auth.uid() and role = 'caregiver');
+
+create policy "profiles_staff_update" on public.profiles
+for update using (public.is_staff_user())
+with check (public.is_staff_user());
 
 -- Children
+drop policy if exists "children_select_authorized" on public.children;
+drop policy if exists "children_staff_insert" on public.children;
+drop policy if exists "children_staff_update" on public.children;
+
 create policy "children_select_authorized" on public.children
 for select using (public.can_access_child(id));
 
@@ -240,6 +295,9 @@ create policy "children_staff_update" on public.children
 for update using (public.is_staff_user()) with check (public.is_staff_user());
 
 -- Child caregivers
+drop policy if exists "child_caregivers_select_self_or_staff" on public.child_caregivers;
+drop policy if exists "child_caregivers_staff_write" on public.child_caregivers;
+
 create policy "child_caregivers_select_self_or_staff" on public.child_caregivers
 for select using (caregiver_id = auth.uid() or public.is_staff_user());
 
@@ -247,10 +305,15 @@ create policy "child_caregivers_staff_write" on public.child_caregivers
 for all using (public.is_staff_user()) with check (public.is_staff_user());
 
 -- Invitations
+drop policy if exists "invitations_staff_all" on public.caregiver_invitations;
+
 create policy "invitations_staff_all" on public.caregiver_invitations
 for all using (public.is_staff_user()) with check (public.is_staff_user());
 
 -- Intake templates
+drop policy if exists "templates_select_authenticated" on public.intake_document_templates;
+drop policy if exists "templates_staff_write" on public.intake_document_templates;
+
 create policy "templates_select_authenticated" on public.intake_document_templates
 for select using (auth.uid() is not null and is_active = true or public.is_staff_user());
 
@@ -258,6 +321,10 @@ create policy "templates_staff_write" on public.intake_document_templates
 for all using (public.is_staff_user()) with check (public.is_staff_user());
 
 -- Child intake documents
+drop policy if exists "documents_select_authorized_child" on public.child_intake_documents;
+drop policy if exists "documents_insert_authorized_child" on public.child_intake_documents;
+drop policy if exists "documents_staff_update" on public.child_intake_documents;
+
 create policy "documents_select_authorized_child" on public.child_intake_documents
 for select using (public.can_access_child(child_id));
 
@@ -268,6 +335,9 @@ create policy "documents_staff_update" on public.child_intake_documents
 for update using (public.is_staff_user()) with check (public.is_staff_user());
 
 -- Audit logs
+drop policy if exists "audit_staff_select" on public.audit_logs;
+drop policy if exists "audit_authenticated_insert" on public.audit_logs;
+
 create policy "audit_staff_select" on public.audit_logs
 for select using (public.is_staff_user());
 
@@ -290,6 +360,10 @@ values (
   ]
 )
 on conflict (id) do update set public = false;
+
+drop policy if exists "storage_read_authorized_child_folder" on storage.objects;
+drop policy if exists "storage_insert_authorized_child_folder" on storage.objects;
+drop policy if exists "storage_update_authorized_child_folder" on storage.objects;
 
 create policy "storage_read_authorized_child_folder" on storage.objects
 for select using (
