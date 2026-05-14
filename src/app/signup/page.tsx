@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { safeRedirect } from "@/lib/utils";
 
@@ -40,16 +41,25 @@ function SignUpForm() {
     }
 
     setLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName || null },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-      },
-    });
+    let result;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName || null },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+    } catch (error) {
+      setLoading(false);
+      setMessage(getAuthErrorMessage(error));
+      return;
+    }
     setLoading(false);
+
+    const { data, error } = result;
 
     if (error) {
       setMessage(error.message);

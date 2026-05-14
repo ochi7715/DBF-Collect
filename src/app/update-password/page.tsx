@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function UpdatePasswordPage() {
@@ -27,8 +28,16 @@ export default function UpdatePasswordPage() {
     }
 
     setLoading(true);
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    let error;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await supabase.auth.updateUser({ password });
+      error = result.error;
+    } catch (caughtError) {
+      setLoading(false);
+      setMessage(getAuthErrorMessage(caughtError));
+      return;
+    }
     setLoading(false);
 
     if (error) {

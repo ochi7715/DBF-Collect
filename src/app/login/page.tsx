@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { safeRedirect } from "@/lib/utils";
 
@@ -26,8 +27,16 @@ function LoginForm() {
     event.preventDefault();
     setLoading(true);
     setMessage(null);
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    let error;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      error = result.error;
+    } catch (caughtError) {
+      setLoading(false);
+      setMessage(getAuthErrorMessage(caughtError));
+      return;
+    }
     setLoading(false);
     if (error) {
       setMessage(error.message);
@@ -40,13 +49,21 @@ function LoginForm() {
   async function sendMagicLink() {
     setLoading(true);
     setMessage(null);
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-      },
-    });
+    let error;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+      error = result.error;
+    } catch (caughtError) {
+      setLoading(false);
+      setMessage(getAuthErrorMessage(caughtError));
+      return;
+    }
     setLoading(false);
     setMessage(error ? error.message : "Check your email for the sign-in link.");
   }

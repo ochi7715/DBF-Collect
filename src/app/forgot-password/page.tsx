@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function ForgotPasswordPage() {
@@ -14,10 +15,18 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setMessage(null);
 
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
-    });
+    let error;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const result = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/update-password`,
+      });
+      error = result.error;
+    } catch (caughtError) {
+      setLoading(false);
+      setMessage(getAuthErrorMessage(caughtError));
+      return;
+    }
 
     setLoading(false);
     setMessage(error ? error.message : "Check your email for a password reset link.");
