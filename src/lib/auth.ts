@@ -31,7 +31,10 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Profile lookup failed", error);
+    redirect("/auth/status?code=profile_lookup_failed");
+  }
 
   if (!data) {
     const { data: created, error: insertError } = await supabase
@@ -44,7 +47,10 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       })
       .select("*")
       .single();
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("Profile create failed", insertError);
+      redirect("/auth/status?code=profile_create_failed");
+    }
     return created as Profile;
   }
 
