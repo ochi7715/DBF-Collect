@@ -414,7 +414,10 @@ function BoatBackdrop() {
       <span className="roster-boat-prow" />
       <span className="roster-boat-stern" />
       {Array.from({ length: 10 }).map((_, index) => (
-        <span key={index} className="roster-boat-paddle" style={{ left: `${10 + index * 8}%` }} />
+        <span key={`left-${index}`} className="roster-boat-paddle roster-boat-paddle-left" style={{ top: `${14 + index * 7.5}%` }} />
+      ))}
+      {Array.from({ length: 10 }).map((_, index) => (
+        <span key={`right-${index}`} className="roster-boat-paddle roster-boat-paddle-right" style={{ top: `${14 + index * 7.5}%` }} />
       ))}
     </div>
   );

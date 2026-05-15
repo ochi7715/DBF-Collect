@@ -1,5 +1,4 @@
 import { Trophy } from "lucide-react";
-import { FillOutFormsSelector } from "@/components/fill-out-forms-selector";
 import { getContactRoleLabel, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { requireProfile } from "@/lib/auth";
 import { getAccessibleTeams } from "@/lib/teams";
@@ -18,8 +17,6 @@ export default async function PortalHomePage() {
         </div>
       ) : (
         <>
-          <FillOutFormsSelector teams={teams} />
-
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Team portal</p>
             <h2 className="mt-2 text-3xl font-bold text-slate-950">My teams</h2>

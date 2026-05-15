@@ -241,22 +241,41 @@ textarea {
 
 .roster-boat-hull {
   position: absolute;
-  left: 4%;
-  right: 4%;
+  left: 50%;
+  top: 1rem;
   bottom: 1rem;
-  height: 4.25rem;
-  border-radius: 0 0 999px 999px;
+  width: min(66%, 34rem);
+  transform: translateX(-50%);
+  clip-path: polygon(
+    50% 0,
+    72% 4%,
+    84% 13%,
+    91% 27%,
+    94% 50%,
+    91% 73%,
+    84% 87%,
+    72% 96%,
+    50% 100%,
+    28% 96%,
+    16% 87%,
+    9% 73%,
+    6% 50%,
+    9% 27%,
+    16% 13%,
+    28% 4%
+  );
   background: #00734e;
-  box-shadow: 0 18px 28px rgba(0, 95, 70, 0.18);
+  box-shadow: 0 20px 32px rgba(0, 95, 70, 0.18);
 }
 
 .roster-boat-hull::after {
   content: "";
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 0.7rem;
-  height: 0.45rem;
+  left: 50%;
+  top: 6%;
+  bottom: 6%;
+  width: 0.55rem;
+  transform: translateX(-50%);
   border-radius: 999px;
   background: #f4311f;
 }
@@ -264,54 +283,65 @@ textarea {
 .roster-boat-prow,
 .roster-boat-stern {
   position: absolute;
-  bottom: 2.3rem;
-  width: 4.4rem;
+  left: 50%;
+  width: 5.25rem;
   height: 3rem;
+  transform: translateX(-50%);
   border: 0.75rem solid #00734e;
 }
 
 .roster-boat-prow {
-  left: 1rem;
-  border-right: 0;
+  top: 0.15rem;
   border-bottom: 0;
-  border-radius: 100% 0 0 0;
-  transform: rotate(-18deg);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50% 50% 0 0;
 }
 
 .roster-boat-stern {
-  right: 1rem;
-  border-left: 0;
-  border-bottom: 0;
-  border-radius: 0 100% 0 0;
-  transform: rotate(18deg);
+  bottom: 0.15rem;
+  border-top: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-radius: 0 0 50% 50%;
 }
 
 .roster-boat-paddle {
   position: absolute;
-  bottom: 3.5rem;
-  width: 0.35rem;
-  height: 5.7rem;
+  width: 4.3rem;
+  height: 0.35rem;
   border-radius: 999px;
   background: #f4311f;
-  transform: rotate(-28deg);
-  transform-origin: bottom center;
+  transform-origin: center;
   opacity: 0.86;
 }
 
-.roster-boat-paddle:nth-child(even) {
-  bottom: 2.6rem;
-  transform: rotate(28deg);
+.roster-boat-paddle-left {
+  left: calc(50% - min(33%, 17rem) - 3rem);
+  transform: rotate(-18deg);
+}
+
+.roster-boat-paddle-right {
+  right: calc(50% - min(33%, 17rem) - 3rem);
+  transform: rotate(18deg);
 }
 
 .roster-boat-paddle::after {
   content: "";
   position: absolute;
-  left: -0.45rem;
-  top: -0.2rem;
-  width: 1.15rem;
-  height: 1.9rem;
-  border-radius: 999px 999px 0.8rem 0.8rem;
+  top: -0.4rem;
+  width: 1.7rem;
+  height: 1.15rem;
+  border-radius: 999px;
   background: #f4311f;
+}
+
+.roster-boat-paddle-left::after {
+  left: -0.1rem;
+}
+
+.roster-boat-paddle-right::after {
+  right: -0.1rem;
 }
 
 .roster-boat-deck {

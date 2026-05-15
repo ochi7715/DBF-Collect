@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ClipboardList, FileText, Home, ListChecks, ShieldCheck, Trophy, UserCog, Users } from "lucide-react";
+import { Activity, CalendarDays, ClipboardList, FileText, Home, ListChecks, ShieldCheck, Trophy, UserCog, Users } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import type { Profile } from "@/lib/types";
 import { isStaffRole } from "@/lib/auth";
@@ -33,6 +33,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
         <aside className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
           <nav className="space-y-1">
             <NavLink href="/portal" icon={<Home size={18} />} label="My teams" />
+            <NavLink href="/portal/forms" icon={<FileText size={18} />} label="Fill forms" />
+            <NavLink href="/portal/practice" icon={<CalendarDays size={18} />} label="Practice schedule" />
             {staff ? (
               <>
                 <div className="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Admin</div>
@@ -41,6 +43,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
                 <NavLink href="/admin/teams" icon={<Trophy size={18} />} label="Teams" />
                 <NavLink href="/admin/team-contacts" icon={<Users size={18} />} label="Team contacts" />
                 <NavLink href="/admin/categories" icon={<ListChecks size={18} />} label="Race categories" />
+                <NavLink href="/admin/practice" icon={<CalendarDays size={18} />} label="Practice schedule" />
                 <NavLink href="/admin/templates" icon={<ClipboardList size={18} />} label="Form setup" />
                 <NavLink href="/admin/audit" icon={<Activity size={18} />} label="Activity log" />
                 {admin ? <NavLink href="/admin/users" icon={<UserCog size={18} />} label="User access" /> : null}

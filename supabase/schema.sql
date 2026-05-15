@@ -97,6 +97,16 @@ alter type public.invitation_status add value if not exists 'accepted';
 alter type public.invitation_status add value if not exists 'expired';
 alter type public.invitation_status add value if not exists 'revoked';
 
+do $$
+begin
+  create type public.practice_attendance_status as enum ('confirmed', 'no_attendance');
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.practice_attendance_status add value if not exists 'confirmed';
+alter type public.practice_attendance_status add value if not exists 'no_attendance';
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
@@ -214,6 +224,35 @@ create table if not exists public.team_form_rosters (
   unique(team_id, form_code)
 );
 
+create table if not exists public.practice_slot_capacities (
+  slot_start_time time primary key,
+  capacity int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint practice_slot_capacities_capacity_check check (capacity >= 0)
+);
+
+create table if not exists public.team_practice_assignments (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null unique references public.teams(id) on delete cascade,
+  slot_start_time time not null references public.practice_slot_capacities(slot_start_time),
+  assigned_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.team_practice_attendance (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  practice_week_start date not null,
+  response public.practice_attendance_status not null,
+  responded_by uuid references public.profiles(id),
+  responded_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(team_id, practice_week_start)
+);
+
 create table if not exists public.document_forms (
   code public.document_form_code primary key,
   name text not null,
@@ -291,6 +330,8 @@ create index if not exists idx_team_invitations_token on public.team_invitations
 create index if not exists idx_team_invitations_team_status on public.team_invitations(team_id, status);
 create index if not exists idx_team_members_team_id on public.team_members(team_id);
 create index if not exists idx_team_form_rosters_team_id on public.team_form_rosters(team_id);
+create index if not exists idx_team_practice_assignments_slot on public.team_practice_assignments(slot_start_time);
+create index if not exists idx_team_practice_attendance_team_week on public.team_practice_attendance(team_id, practice_week_start desc);
 create index if not exists idx_documents_team_id on public.dragon_boat_documents(team_id);
 create index if not exists idx_documents_team_member_id on public.dragon_boat_documents(team_member_id);
 create index if not exists idx_documents_status on public.dragon_boat_documents(status);
@@ -337,6 +378,21 @@ for each row execute function public.set_updated_at();
 drop trigger if exists set_team_form_rosters_updated_at on public.team_form_rosters;
 create trigger set_team_form_rosters_updated_at
 before update on public.team_form_rosters
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_practice_slot_capacities_updated_at on public.practice_slot_capacities;
+create trigger set_practice_slot_capacities_updated_at
+before update on public.practice_slot_capacities
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_team_practice_assignments_updated_at on public.team_practice_assignments;
+create trigger set_team_practice_assignments_updated_at
+before update on public.team_practice_assignments
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_team_practice_attendance_updated_at on public.team_practice_attendance;
+create trigger set_team_practice_attendance_updated_at
+before update on public.team_practice_attendance
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_document_forms_updated_at on public.document_forms;
@@ -473,6 +529,9 @@ alter table public.team_contacts enable row level security;
 alter table public.team_invitations enable row level security;
 alter table public.team_members enable row level security;
 alter table public.team_form_rosters enable row level security;
+alter table public.practice_slot_capacities enable row level security;
+alter table public.team_practice_assignments enable row level security;
+alter table public.team_practice_attendance enable row level security;
 alter table public.document_forms enable row level security;
 alter table public.dragon_boat_documents enable row level security;
 alter table public.audit_logs enable row level security;
@@ -560,6 +619,54 @@ create policy "team_form_rosters_update_uploaders" on public.team_form_rosters
 for update using (public.can_upload_team_documents(team_id))
 with check (public.can_upload_team_documents(team_id));
 
+drop policy if exists "practice_slot_capacities_select_authenticated" on public.practice_slot_capacities;
+drop policy if exists "practice_slot_capacities_staff_write" on public.practice_slot_capacities;
+
+create policy "practice_slot_capacities_select_authenticated" on public.practice_slot_capacities
+for select using (auth.uid() is not null);
+
+create policy "practice_slot_capacities_staff_write" on public.practice_slot_capacities
+for all using (public.is_staff_user()) with check (public.is_staff_user());
+
+drop policy if exists "team_practice_assignments_select_authorized" on public.team_practice_assignments;
+drop policy if exists "team_practice_assignments_staff_write" on public.team_practice_assignments;
+
+create policy "team_practice_assignments_select_authorized" on public.team_practice_assignments
+for select using (public.can_access_team(team_id));
+
+create policy "team_practice_assignments_staff_write" on public.team_practice_assignments
+for all using (public.is_staff_user()) with check (public.is_staff_user());
+
+drop policy if exists "team_practice_attendance_select_authorized" on public.team_practice_attendance;
+drop policy if exists "team_practice_attendance_insert_uploaders" on public.team_practice_attendance;
+drop policy if exists "team_practice_attendance_update_uploaders" on public.team_practice_attendance;
+
+create policy "team_practice_attendance_select_authorized" on public.team_practice_attendance
+for select using (public.can_access_team(team_id));
+
+create policy "team_practice_attendance_insert_uploaders" on public.team_practice_attendance
+for insert with check (public.can_upload_team_documents(team_id));
+
+create policy "team_practice_attendance_update_uploaders" on public.team_practice_attendance
+for update using (public.can_upload_team_documents(team_id))
+with check (public.can_upload_team_documents(team_id));
+
+insert into public.practice_slot_capacities (slot_start_time, capacity)
+values
+  ('10:00', 0),
+  ('10:15', 0),
+  ('10:30', 0),
+  ('10:45', 0),
+  ('11:00', 0),
+  ('11:15', 0),
+  ('11:30', 0),
+  ('11:45', 0),
+  ('12:00', 0),
+  ('12:15', 0),
+  ('12:30', 0),
+  ('12:45', 0),
+  ('13:00', 0)
+on conflict (slot_start_time) do nothing;
 drop policy if exists "document_forms_select_authenticated" on public.document_forms;
 drop policy if exists "document_forms_staff_write" on public.document_forms;
 

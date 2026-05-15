@@ -109,6 +109,36 @@ export type TeamFormRoster = {
   updated_at: string;
 };
 
+export type PracticeAttendanceStatus = "confirmed" | "no_attendance";
+
+export type PracticeSlotCapacity = {
+  slot_start_time: string;
+  capacity: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TeamPracticeAssignment = {
+  id: string;
+  team_id: string;
+  slot_start_time: string;
+  assigned_by: string | null;
+  created_at: string;
+  updated_at: string;
+  teams?: Team | null;
+};
+
+export type TeamPracticeAttendance = {
+  id: string;
+  team_id: string;
+  practice_week_start: string;
+  response: PracticeAttendanceStatus;
+  responded_by: string | null;
+  responded_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type DocumentForm = {
   code: DocumentFormCode;
   name: string;

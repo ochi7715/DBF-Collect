@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ClipboardList, FileText, ListChecks, Trophy, UserCog, Users } from "lucide-react";
+import { Activity, CalendarDays, ClipboardList, FileText, ListChecks, Trophy, UserCog, Users } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,6 +45,7 @@ export default async function AdminHomePage() {
         <AdminCard href="/admin/teams" icon={<Trophy size={24} />} title="Teams" body="Create teams, assign categories, and manage team captain access." />
         <AdminCard href="/admin/team-contacts" icon={<Users size={24} />} title="Team contacts" body="View captains, managers, co-captains, and pending invitations." />
         <AdminCard href="/admin/categories" icon={<ListChecks size={24} />} title="Race categories" body="Edit Regular, USDBOC, and invitational race category rules." />
+        <AdminCard href="/admin/practice" icon={<CalendarDays size={24} />} title="Practice schedule" body="Set practice capacity, assign recurring time slots, and review attendance responses." />
         <AdminCard href="/admin/templates" icon={<ClipboardList size={24} />} title="Form setup" body="Maintain form labels, blank files, upload rules, and Dropbox Sign template IDs." />
         <AdminCard href="/admin/audit" icon={<Activity size={24} />} title="Activity log" body="Review sensitive activity across teams, uploads, invitations, and signatures." />
         {profile.role === "admin" ? (
