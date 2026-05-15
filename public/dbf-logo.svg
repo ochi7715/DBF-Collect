@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 340" role="img" aria-labelledby="title desc">
+  <title id="title">Dragon boat race logo</title>
+  <desc id="desc">A green dragon boat and paddlers in front of a red sun.</desc>
+  <defs>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#005f46" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="285" cy="137" r="109" fill="#f4311f"/>
+    <path d="M41 189c30-71 101-113 184-128 94-17 177 6 237 61" stroke="#00734e" stroke-width="6"/>
+    <path d="M62 224c55 13 126 13 207 4 85-9 150-5 197 16" stroke="#00734e" stroke-width="10"/>
+    <path d="M48 248c68 36 154 48 257 35 72-9 130-1 171 22" stroke="#00734e" stroke-width="13"/>
+    <path d="M71 270c91 26 170 24 252-4 38-13 79-15 122 0" stroke="#00734e" stroke-width="8"/>
+    <path d="M113 202c70 12 148 16 238 6 37-4 71 1 103 14-24 29-58 45-104 49-103 10-201-3-290-39 18-15 35-25 53-30Z" fill="#00734e" filter="url(#soft-shadow)"/>
+    <path d="M110 181c37-27 89-42 145-45 61-3 122 8 180 35" stroke="#00734e" stroke-width="8"/>
+    <path d="M75 185c31-10 56-7 76 9" stroke="#00734e" stroke-width="7"/>
+    <path d="M51 167c26-24 55-29 88-15" stroke="#00734e" stroke-width="5"/>
+    <path d="M55 142c-17-1-31 6-44 22 28-5 51-2 69 10" stroke="#00734e" stroke-width="5"/>
+    <path d="M132 157c-14 15-20 31-17 49" stroke="#00734e" stroke-width="6"/>
+    <path d="M192 145c-13 18-17 39-10 61" stroke="#00734e" stroke-width="6"/>
+    <path d="M258 142c-16 18-22 39-18 63" stroke="#00734e" stroke-width="6"/>
+    <path d="M327 151c-16 15-24 34-22 55" stroke="#00734e" stroke-width="6"/>
+    <path d="M395 170c-12 12-19 25-20 41" stroke="#00734e" stroke-width="6"/>
+    <path d="M150 123c29-3 57 2 82 18" stroke="#00734e" stroke-width="5"/>
+    <path d="M218 89c52-5 91 15 118 60" stroke="#00734e" stroke-width="5"/>
+    <path d="M311 73c42 8 74 31 97 68" stroke="#00734e" stroke-width="5"/>
+    <path d="M459 184c20 14 31 36 35 65" stroke="#00734e" stroke-width="7"/>
+    <path d="M468 150c23 9 36 28 40 58" stroke="#00734e" stroke-width="5"/>
+    <path d="M128 224c15-10 25-22 31-37" stroke="#f4311f" stroke-width="4" opacity=".9"/>
+    <path d="M197 228c15-10 25-23 31-40" stroke="#f4311f" stroke-width="4" opacity=".9"/>
+    <path d="M267 228c15-10 26-23 31-40" stroke="#f4311f" stroke-width="4" opacity=".9"/>
+    <path d="M336 224c15-9 26-21 32-36" stroke="#f4311f" stroke-width="4" opacity=".9"/>
+  </g>
+</svg>

@@ -1,151 +1,94 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, FileCheck2, LockKeyhole, ShieldCheck, Signature, Users } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 
-const workflowItems = [
-  {
-    icon: <Users size={22} />,
-    title: "Team access",
-    body: "Invite one captain, manager, and co-captain into team-specific records with view and upload permissions.",
-  },
-  {
-    icon: <FileCheck2 size={22} />,
-    title: "Race forms",
-    body: "Track Form A1, A2, B1, B2, D, and every team member's Form C waiver in one workflow.",
-  },
-  {
-    icon: <Signature size={22} />,
-    title: "Signature tracking",
-    body: "Send Dropbox Sign templates, track signature status, and store completed signed PDFs privately.",
-  },
-];
+const crewNotes = ["Crew", "Waiver", "Heat", "Dock"];
 
 export default function HomePage() {
   return (
-    <main className="abs-home">
+    <main className="paddle-home">
       <CriticalHomeStyles />
-      <section className="abs-home-hero">
-        <AnimatedPortalGraphic />
-        <div className="abs-home-shell">
-          <header className="abs-home-header">
-            <Link href="/" className="abs-home-brand">
-                <span className="abs-home-logo">D</span>
-                <span>
-                <span className="abs-home-brand-name">Dragon Boat Docs</span>
-                <span className="abs-home-brand-subtitle">Race Portal</span>
+      <section className="paddle-hero">
+        <RaceScene />
+        <div className="paddle-shell">
+          <header className="paddle-header">
+            <Link href="/" className="paddle-brand" aria-label="PaddlePass home">
+              <Image src="/dbf-logo.svg" alt="" width={104} height={68} className="paddle-brand-mark" priority />
+              <span>
+                <span className="paddle-brand-name">PaddlePass</span>
+                <span className="paddle-brand-subtitle">Dragon boat festival</span>
               </span>
             </Link>
-            <nav className="abs-home-nav">
-              <Link href="/login" className="abs-home-button abs-home-button-secondary">
+            <nav className="paddle-nav" aria-label="Primary">
+              <Link href="/login" className="paddle-button paddle-button-ghost">
                 Sign in
               </Link>
-              <Link href="/signup" className="abs-home-button abs-home-button-secondary abs-home-button-signup">
-                Sign up
-              </Link>
-              <Link href="/portal" className="abs-home-button abs-home-button-primary abs-home-button-portal">
-                Open portal
+              <Link href="/portal" className="paddle-button paddle-button-primary">
+                Enter portal <ArrowRight size={18} />
               </Link>
             </nav>
           </header>
 
-          <div className="abs-home-copy">
-            <p className="abs-home-kicker">
-              <ShieldCheck size={16} /> Secure race document collection
-            </p>
-            <h1>Dragon Boat Docs</h1>
-            <p className="abs-home-lede">
-              A focused portal for team access, race category rules, Form C waivers, registration forms, seating charts, and admin review.
-            </p>
-            <div className="abs-home-actions">
-              <Link href="/login" className="abs-home-button abs-home-button-primary abs-home-button-large">
-                Sign in <ArrowRight size={18} />
+          <div className="paddle-copy">
+            <Image src="/dbf-logo.svg" alt="Dragon boat race logo" width={520} height={340} className="paddle-hero-logo" priority />
+            <p className="paddle-kicker">Race day, crew first</p>
+            <h1>PaddlePass</h1>
+            <p className="paddle-lede">Your team space before the drums start.</p>
+            <div className="paddle-actions">
+              <Link href="/portal" className="paddle-button paddle-button-primary paddle-button-large">
+                Enter portal <ArrowRight size={18} />
               </Link>
-              <Link href="/signup" className="abs-home-button abs-home-button-secondary abs-home-button-large">
-                Create account
-              </Link>
-              <Link href="/login?redirectedFrom=%2Fadmin" className="abs-home-button abs-home-button-secondary abs-home-button-large">
-                Admin back office
+              <Link href="/login" className="paddle-button paddle-button-ghost paddle-button-large">
+                Team sign in
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="abs-home-workflow">
-        <div className="abs-home-workflow-grid">
-          {workflowItems.map((item) => (
-            <article key={item.title} className="abs-home-card">
-              <div className="abs-home-card-icon">{item.icon}</div>
-              <h2>{item.title}</h2>
-              <p>{item.body}</p>
-            </article>
-          ))}
+      <section className="paddle-raceband" aria-label="Team view">
+        <div className="paddle-raceband-inner">
+          <div className="paddle-scoreboard">
+            {crewNotes.map((item, index) => (
+              <div key={item} className="paddle-score-tile" style={{ animationDelay: `${index * 0.14}s` }}>
+                <span>{item}</span>
+                <strong>{index === 0 ? "Ready" : index === 1 ? "Set" : index === 2 ? "Soon" : "Go"}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="paddle-current">
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
       </section>
     </main>
   );
 }
 
-function AnimatedPortalGraphic() {
+function RaceScene() {
   return (
-    <div className="abs-home-art" aria-hidden="true">
-      <div className="abs-home-side-panel" />
-      <div className="abs-home-document abs-home-document-a">
-        <div className="abs-home-doc-header">
-          <span className="abs-home-blue-line" />
-          <span className="abs-home-lock">
-            <LockKeyhole size={16} />
+    <div className="paddle-scene" aria-hidden="true">
+      <div className="paddle-sun" />
+      <Image src="/dbf-logo.svg" alt="" width={520} height={340} className="paddle-scene-logo" priority />
+      <div className="paddle-boat">
+        <span className="paddle-dragon-head" />
+        <span className="paddle-hull" />
+        {Array.from({ length: 7 }).map((_, index) => (
+          <span key={index} className="paddle-paddler" style={{ animationDelay: `${index * 0.12}s` }}>
+            <i />
           </span>
-        </div>
-        <span className="abs-home-skeleton abs-home-skeleton-wide" />
-        <span className="abs-home-skeleton abs-home-skeleton-mid" />
-        <span className="abs-home-skeleton abs-home-skeleton-long" />
-        <div className="abs-home-color-grid">
-          <span />
-          <span />
-          <span />
-        </div>
+        ))}
       </div>
-
-      <div className="abs-home-document abs-home-document-b">
-        <div className="abs-home-doc-title">
-          <span className="abs-home-file-icon">
-            <FileCheck2 size={20} />
-          </span>
-          <span>
-            <span className="abs-home-skeleton abs-home-skeleton-title" />
-            <span className="abs-home-skeleton abs-home-skeleton-short" />
-          </span>
-        </div>
-        <div className="abs-home-checklist">
-          <WorkflowRow label="Form A1" done />
-          <WorkflowRow label="Form C" done />
-          <WorkflowRow label="Form D" />
-        </div>
-      </div>
-
-      <div className="abs-home-signature">
-        <span>Signature packet</span>
-        <span className="abs-home-signature-line" />
-        <span className="abs-home-completed">
-          <CheckCircle2 size={16} /> Completed
-        </span>
-      </div>
-
-      <div className="abs-home-flow abs-home-flow-a" />
-      <div className="abs-home-flow abs-home-flow-b" />
-      <div className="abs-home-chip abs-home-chip-a">Uploaded</div>
-      <div className="abs-home-chip abs-home-chip-b">In review</div>
-    </div>
-  );
-}
-
-function WorkflowRow({ label, done = false }: { label: string; done?: boolean }) {
-  return (
-    <div className="abs-home-row">
-      <span>{label}</span>
-      <span className={done ? "abs-home-row-check abs-home-row-check-done" : "abs-home-row-check"}>
-        {done ? <CheckCircle2 size={15} /> : null}
-      </span>
+      <div className="paddle-waves paddle-waves-a" />
+      <div className="paddle-waves paddle-waves-b" />
+      <div className="paddle-waves paddle-waves-c" />
+      <div className="paddle-lane paddle-lane-a" />
+      <div className="paddle-lane paddle-lane-b" />
+      <div className="paddle-spark paddle-spark-a" />
+      <div className="paddle-spark paddle-spark-b" />
+      <div className="paddle-spark paddle-spark-c" />
     </div>
   );
 }
@@ -155,65 +98,68 @@ function CriticalHomeStyles() {
     <style
       dangerouslySetInnerHTML={{
         __html: `
-          .abs-home{min-height:100vh;background:#f7fafb;color:#0f172a;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-          .abs-home a{text-decoration:none}
-          .abs-home-hero{position:relative;isolation:isolate;display:flex;min-height:92vh;overflow:hidden}
-          .abs-home-shell{position:relative;z-index:2;width:100%;max-width:80rem;margin:0 auto;padding:1.25rem 1rem;display:flex;flex-direction:column;justify-content:space-between}
-          .abs-home-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
-          .abs-home-brand{display:flex;align-items:center;gap:.75rem;color:#0f172a}
-          .abs-home-logo{display:flex;width:2.5rem;height:2.5rem;align-items:center;justify-content:center;border-radius:.5rem;background:#1767cc;color:#fff;font-weight:800}
-          .abs-home-brand-name{display:block;font-weight:800;line-height:1.1}
-          .abs-home-brand-subtitle{display:block;font-size:.75rem;color:#64748b}
-          .abs-home-nav,.abs-home-actions{display:flex;align-items:center;gap:.75rem}
-          .abs-home-button{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.5rem;padding:.7rem 1rem;font-weight:750;box-shadow:0 1px 2px rgba(15,23,42,.08);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
-          .abs-home-button:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(15,23,42,.12)}
-          .abs-home-button-primary{background:#1767cc;color:#fff}
-          .abs-home-button-primary:hover{background:#1152a3}
-          .abs-home-button-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155}
-          .abs-home-button-large{padding:.9rem 1.25rem}
-          .abs-home-copy{max-width:46rem;padding:6rem 0 5rem}
-          .abs-home-kicker{display:inline-flex;align-items:center;gap:.5rem;border:1px solid #cfe1df;border-radius:.5rem;background:#fff;padding:.55rem .8rem;color:#145d56;font-size:.875rem;font-weight:800;box-shadow:0 1px 2px rgba(15,23,42,.06)}
-          .abs-home h1{margin:1.5rem 0 0;max-width:42rem;font-size:clamp(3.4rem,7vw,6.2rem);line-height:1.02;letter-spacing:0;font-weight:900;color:#020617}
-          .abs-home-lede{margin:1.25rem 0 0;max-width:42rem;color:#475569;font-size:clamp(1.08rem,2vw,1.28rem);line-height:1.7}
-          .abs-home-actions{margin-top:2rem;flex-wrap:wrap}
-          .abs-home-art{pointer-events:none;position:absolute;inset:0;z-index:1}
-          .abs-home-side-panel{position:absolute;inset-block:0;right:0;width:58%;background:#ecf4f1}
-          .abs-home-document,.abs-home-signature,.abs-home-chip{box-shadow:0 24px 70px rgba(23,32,51,.14)}
-          .abs-home-document{position:absolute;border:1px solid #d9e1e8;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-radius:.5rem}
-          .abs-home-document-a{right:clamp(1.5rem,8vw,8rem);top:17%;width:min(31rem,42vw);padding:1.35rem;animation:absHomeFloat 8s ease-in-out infinite}
-          .abs-home-document-b{right:clamp(5rem,18vw,18rem);bottom:13%;width:min(24rem,34vw);padding:1.1rem;animation:absHomeFloat 9s ease-in-out 1.2s infinite}
-          .abs-home-doc-header,.abs-home-doc-title{display:flex;align-items:center;justify-content:space-between;gap:.75rem}
-          .abs-home-doc-title{justify-content:flex-start}
-          .abs-home-blue-line{display:block;width:6rem;height:.75rem;border-radius:999px;background:#1767cc}
-          .abs-home-lock,.abs-home-file-icon{display:flex;align-items:center;justify-content:center;border-radius:.5rem}
-          .abs-home-lock{width:2rem;height:2rem;background:#e7f4f2;color:#145d56}
-          .abs-home-file-icon{width:2.5rem;height:2.5rem;background:#1767cc;color:#fff}
-          .abs-home-skeleton{display:block;height:.75rem;border-radius:999px;background:#e2e8f0}
-          .abs-home-skeleton-wide{width:13rem;margin-top:1.25rem}.abs-home-skeleton-mid{width:11rem;margin-top:.75rem}.abs-home-skeleton-long{width:14rem;margin-top:.75rem}
-          .abs-home-skeleton-title{width:7rem;background:#cbd5e1}.abs-home-skeleton-short{width:5rem;height:.5rem;margin-top:.55rem}
-          .abs-home-color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:1.75rem}
-          .abs-home-color-grid span{height:4rem;border-radius:.5rem}.abs-home-color-grid span:nth-child(1){background:#ffe6cf}.abs-home-color-grid span:nth-child(2){background:#dff1ee}.abs-home-color-grid span:nth-child(3){background:#e8f0ff}
-          .abs-home-checklist{display:grid;gap:.75rem;margin-top:1.5rem}
-          .abs-home-row{display:flex;align-items:center;justify-content:space-between;border:1px solid #e2e8f0;border-radius:.5rem;background:#fff;padding:.6rem .75rem;color:#334155;font-size:.875rem;font-weight:750}
-          .abs-home-row-check{display:flex;width:1.5rem;height:1.5rem;align-items:center;justify-content:center;border:2px solid #e0a05d;border-radius:999px;color:#fff}
-          .abs-home-row-check-done{border-color:#145d56;background:#145d56}
-          .abs-home-signature{position:absolute;right:clamp(1rem,6vw,6rem);bottom:25%;width:13rem;border:1px solid #cad9d6;border-radius:.5rem;background:#fffaf4;padding:1rem;animation:absHomeFloat 7.5s ease-in-out .5s infinite}
-          .abs-home-signature>span:first-child{display:block;color:#145d56;font-size:.875rem;font-weight:800}
-          .abs-home-signature-line{display:block;height:2.5rem;margin-top:.9rem;border-bottom:3px solid #e0a05d;border-radius:.5rem;transform-origin:left center;animation:absHomeTrace 3.8s ease-in-out infinite}
-          .abs-home-completed{display:inline-flex;align-items:center;gap:.5rem;margin-top:.75rem;border-radius:.5rem;background:#145d56;color:#fff;padding:.55rem .8rem;font-size:.875rem;font-weight:800}
-          .abs-home-flow{position:absolute;height:3px;border-radius:999px;background:#1767cc;opacity:.7;transform-origin:left center;animation:absHomeSlide 4.2s ease-in-out infinite}
-          .abs-home-flow-a{right:29%;top:48%;width:min(16rem,20vw)}.abs-home-flow-b{right:15%;top:62%;width:min(10rem,15vw);animation-delay:.9s}
-          .abs-home-chip{position:absolute;border:1px solid #d9e1e8;border-radius:.5rem;background:#fff;padding:.55rem .8rem;color:#145d56;font-size:.875rem;font-weight:800;animation:absHomePulse 3.8s ease-in-out infinite}
-          .abs-home-chip-a{right:clamp(18rem,37vw,36rem);top:35%}.abs-home-chip-b{right:clamp(3rem,12vw,12rem);top:12%;animation-delay:1.4s}
-          .abs-home-workflow{border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;background:#fff}
-          .abs-home-workflow-grid{max-width:80rem;margin:0 auto;padding:2rem 1rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
-          .abs-home-card{border:1px solid #e2e8f0;border-radius:.5rem;padding:1.25rem;background:#fff}
-          .abs-home-card-icon{display:flex;width:2.5rem;height:2.5rem;align-items:center;justify-content:center;border-radius:.5rem;background:#e7f4f2;color:#145d56}
-          .abs-home-card h2{margin:1rem 0 0;color:#0f172a;font-size:1.125rem}.abs-home-card p{margin:.5rem 0 0;color:#475569;font-size:.925rem;line-height:1.65}
-          @keyframes absHomeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}@keyframes absHomePulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.03)}}@keyframes absHomeSlide{0%,100%{transform:scaleX(.2);opacity:.2}50%{transform:scaleX(1);opacity:.72}}@keyframes absHomeTrace{0%,100%{transform:scaleX(.18)}55%{transform:scaleX(1)}}
-          @media (max-width:1023px){.abs-home-side-panel{display:none}.abs-home-document,.abs-home-signature,.abs-home-flow,.abs-home-chip{opacity:.16}.abs-home-document-a{right:-8rem;top:14%;width:24rem}.abs-home-document-b{right:-5rem;bottom:7%;width:21rem}.abs-home-signature{right:2rem;bottom:27%}.abs-home-workflow-grid{grid-template-columns:1fr}}
-          @media (max-width:640px){.abs-home-shell{padding:1rem}.abs-home-button-portal,.abs-home-button-signup{display:none}.abs-home-copy{padding:5rem 0 4rem}.abs-home-actions{align-items:stretch}.abs-home-actions .abs-home-button{width:100%}.abs-home h1{font-size:3.5rem}}
-          @media (prefers-reduced-motion:reduce){.abs-home-document-a,.abs-home-document-b,.abs-home-signature,.abs-home-signature-line,.abs-home-flow,.abs-home-chip{animation:none}}
+          :root{--dbf-green:#00734e;--dbf-green-dark:#005f46;--dbf-red:#f4311f;--dbf-ink:#062318;--dbf-mist:#f5fbf8;--dbf-cream:#fff8ef}
+          .paddle-home{min-height:100vh;background:var(--dbf-mist);color:var(--dbf-ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+          .paddle-home a{text-decoration:none}
+          .paddle-hero{position:relative;isolation:isolate;min-height:88vh;overflow:hidden;background:linear-gradient(180deg,#fffaf2 0%,#eef8f2 54%,#d9f0e7 100%)}
+          .paddle-shell{position:relative;z-index:3;width:100%;max-width:82rem;margin:0 auto;min-height:88vh;padding:1rem;display:flex;flex-direction:column}
+          .paddle-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+          .paddle-brand{display:flex;align-items:center;gap:.75rem;color:var(--dbf-ink)}
+          .paddle-brand-mark{width:4rem;height:2.75rem;object-fit:contain}
+          .paddle-brand-name{display:block;font-size:1.05rem;font-weight:900;line-height:1;letter-spacing:0;color:var(--dbf-green-dark)}
+          .paddle-brand-subtitle{display:block;margin-top:.18rem;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--dbf-red)}
+          .paddle-nav,.paddle-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+          .paddle-button{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.5rem;padding:.72rem 1rem;font-weight:900;line-height:1;transition:transform .18s ease,box-shadow .18s ease,background .18s ease,color .18s ease}
+          .paddle-button:hover{transform:translateY(-2px)}
+          .paddle-button-primary{border:2px solid var(--dbf-green);background:var(--dbf-green);color:#fff;box-shadow:0 16px 36px rgba(0,115,78,.2)}
+          .paddle-button-primary:hover{background:var(--dbf-green-dark);border-color:var(--dbf-green-dark);box-shadow:0 18px 44px rgba(0,95,70,.24)}
+          .paddle-button-ghost{border:2px solid rgba(0,115,78,.18);background:rgba(255,255,255,.72);color:var(--dbf-green-dark);box-shadow:0 10px 24px rgba(6,35,24,.08);backdrop-filter:blur(14px)}
+          .paddle-button-large{padding:1rem 1.2rem}
+          .paddle-copy{position:relative;z-index:4;max-width:42rem;margin-top:auto;padding:4.5rem 0 5rem}
+          .paddle-hero-logo{width:min(24rem,74vw);height:auto;margin:0 0 .5rem -1rem;filter:drop-shadow(0 24px 30px rgba(0,95,70,.16));animation:paddleLogoRise .9s ease both}
+          .paddle-kicker{display:inline-flex;margin:0;border:2px solid rgba(244,49,31,.22);border-radius:.5rem;background:rgba(255,255,255,.72);padding:.55rem .8rem;color:var(--dbf-red);font-size:.86rem;font-weight:950;text-transform:uppercase;letter-spacing:.12em;box-shadow:0 12px 28px rgba(244,49,31,.12);backdrop-filter:blur(14px)}
+          .paddle-home h1{margin:.85rem 0 0;font-size:clamp(4.1rem,10vw,7.7rem);line-height:.88;font-weight:1000;letter-spacing:0;color:var(--dbf-green-dark);text-shadow:0 8px 0 rgba(244,49,31,.12)}
+          .paddle-lede{margin:1.2rem 0 0;max-width:34rem;color:#174333;font-size:clamp(1.2rem,2.2vw,1.7rem);line-height:1.45;font-weight:800}
+          .paddle-actions{margin-top:2rem}
+          .paddle-scene{position:absolute;inset:0;z-index:1;pointer-events:none}
+          .paddle-sun{position:absolute;right:8vw;top:7vh;width:min(38rem,48vw);aspect-ratio:1;border-radius:999px;background:var(--dbf-red);box-shadow:0 0 0 26px rgba(244,49,31,.07),0 26px 70px rgba(244,49,31,.22);animation:paddleSunPulse 7s ease-in-out infinite}
+          .paddle-scene-logo{position:absolute;right:4vw;top:5vh;width:min(38rem,52vw);height:auto;opacity:.24;filter:drop-shadow(0 18px 24px rgba(0,95,70,.12));animation:paddleLogoDrift 9s ease-in-out infinite}
+          .paddle-boat{position:absolute;right:4vw;bottom:11vh;width:min(44rem,59vw);height:12rem;animation:paddleBoatGlide 5.5s ease-in-out infinite}
+          .paddle-hull{position:absolute;left:8%;right:4%;bottom:1.5rem;height:3rem;border-radius:100% 20% 52% 46%;background:var(--dbf-green);box-shadow:0 20px 36px rgba(0,95,70,.22)}
+          .paddle-dragon-head{position:absolute;left:0;bottom:3.3rem;width:7rem;height:5.2rem;border:1rem solid var(--dbf-green);border-right:0;border-bottom:0;border-radius:70% 20% 0 0;transform:rotate(-10deg)}
+          .paddle-dragon-head:before{content:"";position:absolute;left:-1.2rem;top:.55rem;width:2.1rem;height:2.1rem;border:8px solid var(--dbf-green);border-right:0;border-bottom:0;border-radius:80% 10% 0 0;transform:rotate(-26deg)}
+          .paddle-dragon-head:after{content:"";position:absolute;right:-1.2rem;bottom:-1.5rem;width:6.5rem;height:1rem;border-radius:999px;background:var(--dbf-red)}
+          .paddle-paddler{position:absolute;bottom:4.4rem;width:2.9rem;height:4.6rem;transform-origin:50% 100%;animation:paddleStroke 1.18s ease-in-out infinite}
+          .paddle-paddler:nth-of-type(3){left:20%}.paddle-paddler:nth-of-type(4){left:30%}.paddle-paddler:nth-of-type(5){left:40%}.paddle-paddler:nth-of-type(6){left:50%}.paddle-paddler:nth-of-type(7){left:60%}.paddle-paddler:nth-of-type(8){left:70%}.paddle-paddler:nth-of-type(9){left:80%}
+          .paddle-paddler:before{content:"";position:absolute;left:.9rem;top:0;width:1.05rem;height:1.05rem;border-radius:999px;background:var(--dbf-green-dark)}
+          .paddle-paddler:after{content:"";position:absolute;left:.7rem;top:1rem;width:1.45rem;height:2.3rem;border-radius:1rem 1rem .4rem .4rem;background:var(--dbf-green)}
+          .paddle-paddler i{position:absolute;left:2rem;top:.8rem;width:.42rem;height:5.4rem;border-radius:999px;background:var(--dbf-red);transform:rotate(-28deg);transform-origin:50% 12%}
+          .paddle-waves{position:absolute;left:-8rem;right:-8rem;height:6rem;border-top:10px solid var(--dbf-green);border-radius:50%;opacity:.95;animation:paddleWave 6s linear infinite}
+          .paddle-waves-a{bottom:8vh}.paddle-waves-b{bottom:4vh;animation-duration:7.5s;opacity:.68}.paddle-waves-c{bottom:0;animation-duration:9s;opacity:.45}
+          .paddle-lane{position:absolute;width:18rem;height:3px;border-radius:999px;background:rgba(244,49,31,.56);animation:paddleLane 4.2s ease-in-out infinite}
+          .paddle-lane-a{left:18vw;top:29vh}.paddle-lane-b{right:22vw;top:63vh;animation-delay:1s}
+          .paddle-spark{position:absolute;width:.7rem;height:.7rem;border-radius:999px;background:var(--dbf-red);box-shadow:0 0 0 9px rgba(244,49,31,.11);animation:paddleSpark 3.6s ease-in-out infinite}
+          .paddle-spark-a{left:10vw;top:23vh}.paddle-spark-b{right:15vw;top:18vh;animation-delay:.8s}.paddle-spark-c{left:44vw;bottom:24vh;animation-delay:1.6s}
+          .paddle-raceband{position:relative;z-index:5;background:var(--dbf-green-dark);color:#fff;overflow:hidden}
+          .paddle-raceband-inner{position:relative;max-width:82rem;margin:0 auto;padding:1.2rem 1rem 1.7rem}
+          .paddle-scoreboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}
+          .paddle-score-tile{border:1px solid rgba(255,255,255,.18);border-radius:.5rem;background:rgba(255,255,255,.08);padding:1rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);animation:paddleTileRise .7s ease both}
+          .paddle-score-tile span{display:block;color:#bfe5d7;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.14em}
+          .paddle-score-tile strong{display:block;margin-top:.35rem;color:#fff;font-size:1.3rem;line-height:1;font-weight:1000}
+          .paddle-current{position:absolute;left:0;right:0;bottom:0;height:.45rem;display:grid;grid-template-columns:repeat(3,1fr)}
+          .paddle-current span:nth-child(1){background:var(--dbf-red)}.paddle-current span:nth-child(2){background:#fff}.paddle-current span:nth-child(3){background:var(--dbf-green)}
+          @keyframes paddleLogoRise{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+          @keyframes paddleLogoDrift{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-18px) rotate(2deg)}}
+          @keyframes paddleSunPulse{0%,100%{transform:scale(1);opacity:.98}50%{transform:scale(1.035);opacity:.9}}
+          @keyframes paddleBoatGlide{0%,100%{transform:translateX(0) translateY(0)}50%{transform:translateX(-18px) translateY(-9px)}}
+          @keyframes paddleStroke{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(10deg)}}
+          @keyframes paddleWave{from{transform:translateX(-8rem)}to{transform:translateX(8rem)}}
+          @keyframes paddleLane{0%,100%{transform:scaleX(.22);opacity:.18}50%{transform:scaleX(1);opacity:.7}}
+          @keyframes paddleSpark{0%,100%{transform:translateY(0) scale(.8);opacity:.45}50%{transform:translateY(-16px) scale(1.15);opacity:1}}
+          @keyframes paddleTileRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+          @media (max-width:980px){.paddle-shell{min-height:86vh}.paddle-scene-logo{right:-8rem;top:16vh;width:38rem;opacity:.18}.paddle-sun{right:-8rem;width:30rem}.paddle-boat{right:-10rem;width:38rem;opacity:.4}.paddle-copy{padding-top:5rem}.paddle-scoreboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
+          @media (max-width:640px){.paddle-header{align-items:flex-start}.paddle-brand-mark{width:3.35rem}.paddle-brand-subtitle{font-size:.63rem}.paddle-nav .paddle-button-ghost{display:none}.paddle-button{padding:.68rem .82rem}.paddle-copy{padding:4rem 0 4.5rem}.paddle-hero-logo{width:min(20rem,86vw);margin-left:-.75rem}.paddle-home h1{font-size:clamp(4rem,19vw,6rem)}.paddle-lede{font-size:1.08rem}.paddle-actions .paddle-button{width:100%}.paddle-scoreboard{grid-template-columns:1fr 1fr}.paddle-sun{top:13vh;right:-11rem;width:25rem}.paddle-boat{bottom:15vh;right:-16rem;width:35rem}}
+          @media (prefers-reduced-motion:reduce){.paddle-hero-logo,.paddle-scene-logo,.paddle-sun,.paddle-boat,.paddle-paddler,.paddle-waves,.paddle-lane,.paddle-spark,.paddle-score-tile{animation:none}}
         `,
       }}
     />
