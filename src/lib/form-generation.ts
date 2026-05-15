@@ -575,7 +575,15 @@ function fillRosterRows(
     | typeof B2_FIELDS
 ) {
   const memberById = new Map(members.map((member) => [member.id, member]));
-  const rowSeatKeys = getRosterSeatDefinitions(formCode).map((seat) => seat.key);
+  const orderedSeats = getRosterSeatDefinitions(formCode);
+  const paddlerSeatKeys = orderedSeats.filter((seat) => seat.kind === "paddler").map((seat) => seat.key);
+  const nonPaddlerSeatKeys = orderedSeats.filter((seat) => seat.kind !== "paddler").map((seat) => seat.key);
+  const captainSeatKey = roster.captainSeatKey && paddlerSeatKeys.includes(roster.captainSeatKey) ? roster.captainSeatKey : paddlerSeatKeys[0];
+  const rowSeatKeys = [
+    captainSeatKey,
+    ...paddlerSeatKeys.filter((seatKey) => seatKey !== captainSeatKey),
+    ...nonPaddlerSeatKeys,
+  ];
 
   rowSeatKeys.forEach((seatKey, index) => {
     const member = memberById.get(roster.layout[seatKey] ?? "");

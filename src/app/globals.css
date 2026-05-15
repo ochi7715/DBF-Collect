@@ -206,3 +206,114 @@ textarea {
     animation: none;
   }
 }
+
+.roster-boat-stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(244, 49, 31, 0.14), transparent 28%),
+    linear-gradient(180deg, #f1fbf7 0%, #d7efe5 100%);
+}
+
+.roster-boat-stage::before,
+.roster-boat-stage::after {
+  content: "";
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  border-top: 8px solid rgba(0, 115, 78, 0.2);
+  border-radius: 50%;
+}
+
+.roster-boat-stage::before {
+  bottom: 0.9rem;
+}
+
+.roster-boat-stage::after {
+  bottom: -0.7rem;
+  opacity: 0.7;
+}
+
+.roster-boat-art {
+  position: absolute;
+  inset: 0;
+}
+
+.roster-boat-hull {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 1rem;
+  height: 4.25rem;
+  border-radius: 0 0 999px 999px;
+  background: #00734e;
+  box-shadow: 0 18px 28px rgba(0, 95, 70, 0.18);
+}
+
+.roster-boat-hull::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0.7rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #f4311f;
+}
+
+.roster-boat-prow,
+.roster-boat-stern {
+  position: absolute;
+  bottom: 2.3rem;
+  width: 4.4rem;
+  height: 3rem;
+  border: 0.75rem solid #00734e;
+}
+
+.roster-boat-prow {
+  left: 1rem;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 100% 0 0 0;
+  transform: rotate(-18deg);
+}
+
+.roster-boat-stern {
+  right: 1rem;
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 0 100% 0 0;
+  transform: rotate(18deg);
+}
+
+.roster-boat-paddle {
+  position: absolute;
+  bottom: 3.5rem;
+  width: 0.35rem;
+  height: 5.7rem;
+  border-radius: 999px;
+  background: #f4311f;
+  transform: rotate(-28deg);
+  transform-origin: bottom center;
+  opacity: 0.86;
+}
+
+.roster-boat-paddle:nth-child(even) {
+  bottom: 2.6rem;
+  transform: rotate(28deg);
+}
+
+.roster-boat-paddle::after {
+  content: "";
+  position: absolute;
+  left: -0.45rem;
+  top: -0.2rem;
+  width: 1.15rem;
+  height: 1.9rem;
+  border-radius: 999px 999px 0.8rem 0.8rem;
+  background: #f4311f;
+}
+
+.roster-boat-deck {
+  backdrop-filter: blur(8px);
+}

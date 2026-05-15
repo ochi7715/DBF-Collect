@@ -15,8 +15,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
           <Link href="/portal" className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-2xl bg-brand-600 font-bold text-white">D</div>
             <div>
-              <p className="font-bold leading-tight text-slate-950">Dragon Boat Docs</p>
-              <p className="text-xs text-slate-500">Race registration portal</p>
+              <p className="font-bold leading-tight text-slate-950">PaddlePass</p>
+              <p className="text-xs text-slate-500">Dragon Boat Festival portal</p>
             </div>
           </Link>
           <AccountMenu

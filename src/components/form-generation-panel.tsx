@@ -248,8 +248,9 @@ function RosterGenerator({
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-4">
-          <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-4">
-            <div className="mx-auto max-w-3xl rounded-[999px] border-4 border-emerald-700 bg-white/80 p-4 shadow-inner">
+          <div className="roster-boat-stage rounded-[2rem] border border-emerald-200 p-4">
+            <BoatBackdrop />
+            <div className="roster-boat-deck relative z-10 mx-auto max-w-3xl rounded-[999px] border-4 border-emerald-700 bg-white/90 p-4 shadow-inner">
               <SeatDropZone
                 seat={specialtySeats.find((seat) => seat.kind === "drummer")}
                 member={memberById.get(layout.drummer ?? "")}
@@ -351,6 +352,7 @@ function SeatDropZone({
 }) {
   if (!seat) return null;
   const isCaptainSeat = captainSeatKey === seat.key;
+  const displayLabel = isCaptainSeat && seat.kind === "paddler" ? "Captain" : seat.label;
 
   return (
     <div
@@ -367,7 +369,7 @@ function SeatDropZone({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{seat.label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{displayLabel}</p>
           <p className="mt-1 text-sm font-semibold text-slate-900">{member?.full_name ?? "Drop member here"}</p>
         </div>
         {seat.kind === "paddler" ? (
@@ -401,6 +403,19 @@ function SeatDropZone({
           </button>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function BoatBackdrop() {
+  return (
+    <div className="roster-boat-art" aria-hidden="true">
+      <span className="roster-boat-hull" />
+      <span className="roster-boat-prow" />
+      <span className="roster-boat-stern" />
+      {Array.from({ length: 10 }).map((_, index) => (
+        <span key={index} className="roster-boat-paddle" style={{ left: `${10 + index * 8}%` }} />
+      ))}
     </div>
   );
 }

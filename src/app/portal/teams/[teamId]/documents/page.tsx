@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { TeamSwitcher } from "@/components/team-switcher";
 import { DocumentStatusBadge } from "@/components/document-status-badge";
 import { FormGenerationPanel } from "@/components/form-generation-panel";
+import { TeamMemberTable } from "@/components/team-member-table";
 import { UploadDocumentForm } from "@/components/upload-document-form";
 import { getContactRoleLabel, getRequiredTeamFormCodes, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { isStaffRole, requireProfile } from "@/lib/auth";
@@ -114,80 +115,7 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
         </div>
 
         {teamMembers.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {teamMembers.map((member) => (
-              <form
-                key={member.id}
-                action={`/api/teams/${team.id}/members/${member.id}`}
-                method="post"
-                className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2"
-              >
-                <label className="block sm:col-span-2">
-                  <span className="text-sm font-medium text-slate-700">Member name</span>
-                  <input
-                    name="fullName"
-                    required
-                    maxLength={160}
-                    defaultValue={member.full_name}
-                    disabled={!canUploadDocuments}
-                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Age</span>
-                  <input
-                    name="age"
-                    type="number"
-                    min={1}
-                    max={130}
-                    defaultValue={member.age ?? ""}
-                    disabled={!canUploadDocuments}
-                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Gender</span>
-                  <select
-                    name="gender"
-                    defaultValue={member.gender ?? ""}
-                    disabled={!canUploadDocuments}
-                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-50"
-                  >
-                    <option value="">Select</option>
-                    <option value="F">Female</option>
-                    <option value="M">Male</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Telephone #</span>
-                  <input
-                    name="telephone"
-                    maxLength={40}
-                    defaultValue={member.telephone ?? ""}
-                    disabled={!canUploadDocuments}
-                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Photo ID #</span>
-                  <input
-                    name="photoIdNumber"
-                    maxLength={80}
-                    defaultValue={member.photo_id_number ?? ""}
-                    disabled={!canUploadDocuments}
-                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
-                  />
-                </label>
-                {canUploadDocuments ? (
-                  <div className="sm:col-span-2">
-                    <button className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                      Save member details
-                    </button>
-                  </div>
-                ) : null}
-              </form>
-            ))}
-          </div>
+          <TeamMemberTable teamId={team.id} members={teamMembers} canUpload={canUploadDocuments} />
         ) : (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
             Add team members to begin building the roster.
