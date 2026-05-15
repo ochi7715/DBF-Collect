@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   if (!currentContact) redirect("/portal");
 
   if (currentContact.contact_role === parsed.contactRole) {
-    redirect(`/portal/teams/${teamId}/documents?leadership=saved`);
+    redirect(`/portal/teams/${teamId}?leadership=saved`);
   }
 
   const { data: occupiedRole, error: occupiedRoleError } = await admin
@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     .neq("profile_id", profile.id)
     .maybeSingle();
   if (occupiedRoleError) throw occupiedRoleError;
-  if (occupiedRole) redirect(`/portal/teams/${teamId}/documents?leadership=occupied`);
+  if (occupiedRole) redirect(`/portal/teams/${teamId}?leadership=occupied`);
 
   const { error } = await admin
     .from("team_contacts")
@@ -52,7 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
 
   if (error) {
     if ((error as { code?: string }).code === "23505") {
-      redirect(`/portal/teams/${teamId}/documents?leadership=occupied`);
+      redirect(`/portal/teams/${teamId}?leadership=occupied`);
     }
     throw error;
   }
@@ -70,5 +70,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     request,
   });
 
-  redirect(`/portal/teams/${teamId}/documents?leadership=saved`);
+  redirect(`/portal/teams/${teamId}?leadership=saved`);
 }

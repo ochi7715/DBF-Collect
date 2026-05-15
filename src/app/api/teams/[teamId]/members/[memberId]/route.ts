@@ -76,7 +76,7 @@ export async function POST(
     request,
   });
 
-  redirect(`/portal/teams/${teamId}/documents`);
+  redirect(`/portal/teams/${teamId}`);
 }
 
 function optionalTextSchema(maxLength: number) {

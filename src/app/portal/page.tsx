@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Trophy } from "lucide-react";
+import { ArrowRight, Plus, Trophy } from "lucide-react";
 import { getContactRoleLabel, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { requireProfile } from "@/lib/auth";
 import { getAccessibleTeams } from "@/lib/teams";
@@ -36,12 +36,21 @@ export default async function PortalHomePage() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {teams.map((team) => (
-              <article key={team.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-xl font-bold text-slate-950">{team.name}</h3>
-                <p className="mt-1 text-sm text-slate-500">{team.race_categories?.name ?? "Race category pending"}</p>
-                <p className="mt-1 text-sm text-slate-500">{getRaceCategoryRuleSummary(team.race_categories?.rule_set)}</p>
-                {team.contact_role ? <p className="mt-1 text-sm text-slate-500">{getContactRoleLabel(team.contact_role)}</p> : null}
-              </article>
+              <Link
+                key={team.id}
+                href={`/portal/teams/${team.id}`}
+                className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-950">{team.name}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{team.race_categories?.name ?? "Race category pending"}</p>
+                    <p className="mt-1 text-sm text-slate-500">{getRaceCategoryRuleSummary(team.race_categories?.rule_set)}</p>
+                    {team.contact_role ? <p className="mt-1 text-sm text-slate-500">{getContactRoleLabel(team.contact_role)}</p> : null}
+                  </div>
+                  <ArrowRight className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600" size={20} />
+                </div>
+              </Link>
             ))}
           </div>
         </>
