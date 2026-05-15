@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { requireStaff } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { ensureTeamDocuments } from "@/lib/documents";
 import {
@@ -9,15 +10,9 @@ import {
 } from "@/lib/form-generation";
 import { getRequiredTeamFormCodes } from "@/lib/dragon-boat";
 import { sanitizeRosterLayout } from "@/lib/roster-config";
-import { upsertTeamFormRoster } from "@/lib/rosters";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const formCodeSchema = z.enum(["A1", "A2", "B1", "B2"]);
-const rosterPayloadSchema = z.object({
-  layout: z.record(z.string(), z.string().uuid().nullable()).optional(),
-  captainSeatKey: z.string().nullable().optional(),
-});
 
 export async function POST(
   request: NextRequest,
@@ -27,19 +22,14 @@ export async function POST(
   const parsedFormCode = formCodeSchema.safeParse(formCode);
   if (!parsedFormCode.success) return NextResponse.json({ error: "Invalid form code" }, { status: 400 });
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { data: allowed, error: allowedError } = await supabase.rpc("can_upload_team_documents", {
-    target_team_id: teamId,
-  });
-  if (allowedError || !allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
+  const actor = await requireStaff();
   const admin = createSupabaseAdminClient();
-  const [{ data: team, error: teamError }, { data: contacts, error: contactsError }, { data: members, error: membersError }] =
+  const [
+    { data: team, error: teamError },
+    { data: contacts, error: contactsError },
+    { data: members, error: membersError },
+    { data: savedRoster, error: savedRosterError },
+  ] =
     await Promise.all([
       admin.from("teams").select("*, race_categories(*)").eq("id", teamId).single(),
       admin
@@ -48,10 +38,18 @@ export async function POST(
         .eq("team_id", teamId)
         .eq("is_authorized", true),
       admin.from("team_members").select("*").eq("team_id", teamId).order("full_name", { ascending: true }),
+      parsedFormCode.data === "B1" || parsedFormCode.data === "B2"
+        ? admin
+            .from("team_form_rosters")
+            .select("layout, captain_seat_key")
+            .eq("team_id", teamId)
+            .eq("form_code", parsedFormCode.data)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
   if (teamError || !team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
-  if (contactsError || membersError) return NextResponse.json({ error: "Unable to load team data" }, { status: 500 });
+  if (contactsError || membersError || savedRosterError) return NextResponse.json({ error: "Unable to load team data" }, { status: 500 });
 
   const requiredCodes = getRequiredTeamFormCodes(team.race_categories?.rule_set);
   if (!requiredCodes.includes(parsedFormCode.data)) {
@@ -66,15 +64,11 @@ export async function POST(
     | undefined;
 
   if (parsedFormCode.data === "B1" || parsedFormCode.data === "B2") {
-    const json = await request.json().catch(() => null);
-    const parsedPayload = rosterPayloadSchema.safeParse(json);
-    if (!parsedPayload.success || !parsedPayload.data.layout) {
-      return NextResponse.json({ error: "A seating layout is required." }, { status: 400 });
-    }
+    if (!savedRoster) return NextResponse.json({ error: "A saved seating layout is required." }, { status: 400 });
 
     roster = {
-      layout: sanitizeRosterLayout(parsedFormCode.data, parsedPayload.data.layout),
-      captainSeatKey: parsedPayload.data.captainSeatKey ?? null,
+      layout: sanitizeRosterLayout(parsedFormCode.data, savedRoster.layout),
+      captainSeatKey: savedRoster.captain_seat_key ?? null,
     };
 
     const rosterProblems = validateRosterForGeneration({
@@ -85,14 +79,6 @@ export async function POST(
     if (rosterProblems.length > 0) {
       return NextResponse.json({ error: rosterProblems[0], issues: rosterProblems }, { status: 400 });
     }
-
-    await upsertTeamFormRoster({
-      teamId,
-      formCode: parsedFormCode.data,
-      layout: roster.layout,
-      captainSeatKey: roster.captainSeatKey,
-      createdBy: user.id,
-    });
   }
 
   await ensureTeamDocuments(teamId);
@@ -130,7 +116,7 @@ export async function POST(
       .from("dragon_boat_documents")
       .update({
         status: "uploaded",
-        uploaded_by: user.id,
+        uploaded_by: actor.id,
         file_path: storagePath,
         file_name: fileName,
         mime_type: "application/pdf",
@@ -142,7 +128,7 @@ export async function POST(
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
 
     await writeAuditLog({
-      actorId: user.id,
+      actorId: actor.id,
       teamId,
       entityType: "dragon_boat_document",
       entityId: document.id,

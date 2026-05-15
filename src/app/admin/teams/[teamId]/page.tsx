@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminFormGenerationPanel } from "@/components/admin-form-generation-panel";
 import { DocumentStatusBadge } from "@/components/document-status-badge";
-import { getContactRoleLabel, getRaceCategoryRuleSummary, TEAM_CONTACT_ROLE_OPTIONS } from "@/lib/dragon-boat";
+import { getContactRoleLabel, getRaceCategoryRuleSummary, getRequiredTeamFormCodes, TEAM_CONTACT_ROLE_OPTIONS } from "@/lib/dragon-boat";
 import { requireStaff } from "@/lib/auth";
 import { getTeamDocuments, getTeamMemberFormCDocuments } from "@/lib/documents";
+import { validateRosterForGeneration, type GeneratedFormCode } from "@/lib/form-generation";
 import { buildInvitationUrl, getAppBaseUrl } from "@/lib/invitations";
+import { getTeamFormRoster } from "@/lib/rosters";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTeamMembers } from "@/lib/team-members";
 import { getTeamById } from "@/lib/teams";
-import type { RaceCategory, TeamContact, TeamInvitation } from "@/lib/types";
+import type { RaceCategory, TeamContact, TeamFormRoster, TeamInvitation, TeamMember } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export default async function AdminTeamDetailPage({
@@ -21,12 +25,26 @@ export default async function AdminTeamDetailPage({
   const { invitation: highlightedInvitationId, delivery } = await searchParams;
   await requireStaff();
 
-  const [team, teamDocuments, memberDocuments] = await Promise.all([
+  const [team, teamDocuments, memberDocuments, teamMembers] = await Promise.all([
     getTeamById(teamId).catch(() => null),
     getTeamDocuments(teamId),
     getTeamMemberFormCDocuments(teamId),
+    getTeamMembers(teamId),
   ]);
   if (!team) notFound();
+
+  const requiredFormCodes = getRequiredTeamFormCodes(team.race_categories?.rule_set);
+  const generatedFormCodes = requiredFormCodes.filter((code): code is GeneratedFormCode =>
+    ["A1", "A2", "B1", "B2"].includes(code)
+  );
+  const [b1Roster, b2Roster] = await Promise.all([
+    generatedFormCodes.includes("B1") ? getTeamFormRoster(teamId, "B1") : Promise.resolve(null),
+    generatedFormCodes.includes("B2") ? getTeamFormRoster(teamId, "B2") : Promise.resolve(null),
+  ]);
+  const generationItems = getGenerationItems(generatedFormCodes, teamMembers, {
+    B1: b1Roster,
+    B2: b2Roster,
+  });
 
   const supabase = await createSupabaseServerClient();
   const [{ data: contacts }, { data: invitations }, { data: categories }, baseUrl] = await Promise.all([
@@ -225,6 +243,10 @@ export default async function AdminTeamDetailPage({
           </div>
         </div>
 
+        <div className="lg:col-span-2">
+          <AdminFormGenerationPanel teamId={team.id} items={generationItems} />
+        </div>
+
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
           <h2 className="text-lg font-bold text-slate-950">Team member Form Cs</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -242,4 +264,41 @@ export default async function AdminTeamDetailPage({
       </div>
     </section>
   );
+}
+
+function getGenerationItems(
+  formCodes: GeneratedFormCode[],
+  members: TeamMember[],
+  rosters: Partial<Record<"B1" | "B2", TeamFormRoster | null>>
+) {
+  return formCodes.map((formCode) => {
+    if (formCode === "B1" || formCode === "B2") {
+      const savedRoster = rosters[formCode];
+      const issues = savedRoster
+        ? validateRosterForGeneration({
+            formCode,
+            members,
+            roster: {
+              layout: savedRoster.layout,
+              captainSeatKey: savedRoster.captain_seat_key,
+            },
+          })
+        : ["A saved seating layout is required."];
+      return {
+        formCode,
+        label: "Roster PDF",
+        description: "Uses the saved roster layout and team member profile details.",
+        ready: issues.length === 0,
+        issues,
+      };
+    }
+
+    return {
+      formCode,
+      label: "Registration PDF",
+      description: "Uses the saved team and contact details for the current race category.",
+      ready: true,
+      issues: [],
+    };
+  });
 }

@@ -1,17 +1,15 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
-import { useRouter } from "next/navigation";
-import { Download, Save, Star, Users } from "lucide-react";
+import { Save, Star, Users } from "lucide-react";
 import { getRosterSeatDefinitions, hasCompleteRosterProfile, type SeatDefinition } from "@/lib/roster-config";
 import { cn } from "@/lib/utils";
-import type { DocumentFormCode, TeamFormRoster, TeamMember } from "@/lib/types";
+import type { TeamFormRoster, TeamMember } from "@/lib/types";
 
-type GeneratedFormCode = Extract<DocumentFormCode, "A1" | "A2" | "B1" | "B2">;
-type RosterFormCode = Extract<GeneratedFormCode, "B1" | "B2">;
+type RosterFormCode = "B1" | "B2";
 type Layout = Record<string, string | null>;
 
-export function FormGenerationPanel({
+export function RosterLayoutPanel({
   teamId,
   forms,
   members,
@@ -19,7 +17,7 @@ export function FormGenerationPanel({
   canUpload,
 }: {
   teamId: string;
-  forms: GeneratedFormCode[];
+  forms: RosterFormCode[];
   members: TeamMember[];
   rosters: Partial<Record<RosterFormCode, TeamFormRoster | null>>;
   canUpload: boolean;
@@ -27,87 +25,27 @@ export function FormGenerationPanel({
   return (
     <section className="space-y-4">
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-950">PDF generation</h2>
-        <p className="mt-1 text-sm text-slate-600">Generate the registration and roster PDFs for this team.</p>
+        <h2 className="text-lg font-bold text-slate-950">Roster seating charts</h2>
+        <p className="mt-1 text-sm text-slate-600">Save the seating layout for each roster form. Admins generate the final PDFs from the saved roster.</p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {forms.map((formCode) =>
-          formCode === "B1" || formCode === "B2" ? (
-            <RosterGenerator
-              key={formCode}
-              teamId={teamId}
-              formCode={formCode}
-              members={members}
-              initialRoster={rosters[formCode]}
-              canUpload={canUpload}
-            />
-          ) : (
-            <SimpleFormGenerator key={formCode} teamId={teamId} formCode={formCode} canUpload={canUpload} />
-          )
-        )}
+      <div className="space-y-4">
+        {forms.map((formCode) => (
+          <RosterEditor
+            key={formCode}
+            teamId={teamId}
+            formCode={formCode}
+            members={members}
+            initialRoster={rosters[formCode]}
+            canUpload={canUpload}
+          />
+        ))}
       </div>
     </section>
   );
 }
 
-function SimpleFormGenerator({
-  teamId,
-  formCode,
-  canUpload,
-}: {
-  teamId: string;
-  formCode: Extract<GeneratedFormCode, "A1" | "A2">;
-  canUpload: boolean;
-}) {
-  const router = useRouter();
-  const [status, setStatus] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
-
-  async function generatePdf() {
-    setIsBusy(true);
-    setStatus(null);
-    try {
-      const response = await fetch(`/api/teams/${teamId}/forms/${formCode}/generate`, { method: "POST" });
-      if (!response.ok) {
-        setStatus(await readErrorMessage(response));
-        return;
-      }
-      await downloadPdfResponse(response, `Form-${formCode}.pdf`);
-      setStatus(`Form ${formCode} generated.`);
-      router.refresh();
-    } finally {
-      setIsBusy(false);
-    }
-  }
-
-  return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Registration PDF</p>
-          <h3 className="mt-1 text-xl font-bold text-slate-950">Form {formCode}</h3>
-        </div>
-        <div className="rounded-2xl bg-brand-50 p-3 text-brand-600">
-          <Download size={20} />
-        </div>
-      </div>
-      <p className="mt-4 text-sm text-slate-600">Uses the saved team and contact details for the current race category.</p>
-      {status ? <p className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">{status}</p> : null}
-      <button
-        type="button"
-        disabled={!canUpload || isBusy}
-        onClick={generatePdf}
-        className="focus-ring mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-      >
-        <Download size={18} />
-        {isBusy ? "Generating..." : `Generate Form ${formCode}`}
-      </button>
-    </article>
-  );
-}
-
-function RosterGenerator({
+function RosterEditor({
   teamId,
   formCode,
   members,
@@ -120,7 +58,6 @@ function RosterGenerator({
   initialRoster?: TeamFormRoster | null;
   canUpload: boolean;
 }) {
-  const router = useRouter();
   const seats = useMemo(() => getRosterSeatDefinitions(formCode), [formCode]);
   const paddlerSeats = seats.filter((seat) => seat.kind === "paddler");
   const alternateSeats = seats.filter((seat) => seat.kind === "alternate");
@@ -131,7 +68,6 @@ function RosterGenerator({
   );
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const memberById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
   const assignedMemberIds = useMemo(() => new Set(Object.values(layout).filter(Boolean) as string[]), [layout]);
@@ -143,7 +79,6 @@ function RosterGenerator({
     const member = memberById.get(layout[seat.key] ?? "");
     return member ? hasCompleteRosterProfile(member) : false;
   });
-  const canGenerate = requiredSeatsFilled && captainSeatFilled && assignedProfilesComplete;
 
   function assignMember(seatKey: string, memberId: string) {
     setLayout((current) => {
@@ -193,32 +128,11 @@ function RosterGenerator({
     }
   }
 
-  async function generatePdf() {
-    setIsGenerating(true);
-    setStatus(null);
-    try {
-      const response = await fetch(`/api/teams/${teamId}/forms/${formCode}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ layout, captainSeatKey }),
-      });
-      if (!response.ok) {
-        setStatus(await readErrorMessage(response));
-        return;
-      }
-      await downloadPdfResponse(response, `Form-${formCode}.pdf`);
-      setStatus(`Form ${formCode} generated.`);
-      router.refresh();
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Roster PDF</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Roster layout</p>
           <h3 className="mt-1 text-xl font-bold text-slate-950">Form {formCode}</h3>
           <p className="mt-2 text-sm text-slate-600">
             Fill every required seat. Alternates may stay empty. Drag the star to the captain&apos;s paddler seat.
@@ -233,15 +147,6 @@ function RosterGenerator({
           >
             <Save size={18} />
             {isSaving ? "Saving..." : "Save layout"}
-          </button>
-          <button
-            type="button"
-            disabled={!canUpload || isGenerating || !canGenerate}
-            onClick={generatePdf}
-            className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            <Download size={18} />
-            {isGenerating ? "Generating..." : `Generate Form ${formCode}`}
           </button>
         </div>
       </div>
@@ -468,22 +373,4 @@ async function readErrorMessage(response: Response) {
   if (!contentType.includes("application/json")) return "Unable to complete the request.";
   const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   return payload?.error ?? "Unable to complete the request.";
-}
-
-async function downloadPdfResponse(response: Response, fallbackFileName: string) {
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = getFileNameFromDisposition(response.headers.get("content-disposition")) ?? fallbackFileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(objectUrl);
-}
-
-function getFileNameFromDisposition(value: string | null) {
-  if (!value) return null;
-  const match = value.match(/filename="([^"]+)"/);
-  return match?.[1] ?? null;
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TeamSwitcher } from "@/components/team-switcher";
 import { DocumentStatusBadge } from "@/components/document-status-badge";
-import { FormGenerationPanel } from "@/components/form-generation-panel";
+import { RosterLayoutPanel } from "@/components/form-generation-panel";
 import { TeamMemberTable } from "@/components/team-member-table";
 import { UploadDocumentForm } from "@/components/upload-document-form";
 import { getContactRoleLabel, getRequiredTeamFormCodes, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
@@ -58,19 +58,20 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 p-5">
             <h2 className="text-lg font-bold text-slate-950">Team-level forms</h2>
             <p className="mt-1 text-sm text-slate-600">Only one copy is needed per team for each listed form.</p>
           </div>
-
-          {teamDocuments.map((doc) => (
-            <DocumentCard key={doc.id} documentId={doc.id} formCode={doc.form_code} templateFilePath={doc.document_forms?.template_file_path} title={doc.document_forms?.name ?? `Form ${doc.form_code}`} description={doc.document_forms?.description} canUpload={canUploadDocuments} status={doc.status} updatedAt={doc.updated_at} fileName={doc.file_name} fileSize={doc.file_size_bytes} reviewNotes={doc.review_notes} requiresUpload={doc.document_forms?.requires_upload ?? true} />
-          ))}
+          <div className="divide-y divide-slate-200">
+            {teamDocuments.map((doc) => (
+              <DocumentRow key={doc.id} documentId={doc.id} formCode={doc.form_code} templateFilePath={doc.document_forms?.template_file_path} title={doc.document_forms?.name ?? `Form ${doc.form_code}`} description={doc.document_forms?.description} canUpload={canUploadDocuments} status={doc.status} updatedAt={doc.updated_at} fileName={doc.file_name} fileSize={doc.file_size_bytes} reviewNotes={doc.review_notes} requiresUpload={doc.document_forms?.requires_upload ?? true} />
+            ))}
+          </div>
         </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-950">Add team member</h2>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-950">Add team member</h2>
           <p className="mt-1 text-sm text-slate-600">Add each team member, then upload their Form C waiver.</p>
           {canUploadDocuments ? (
             <form action={`/api/teams/${team.id}/members`} method="post" className="mt-4 space-y-4">
@@ -108,24 +109,17 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-950">Team member profiles</h2>
-          <p className="mt-1 text-sm text-slate-600">Roster PDFs use age, gender, telephone, and photo ID details from these profiles.</p>
-        </div>
-
-        {teamMembers.length > 0 ? (
-          <TeamMemberTable teamId={team.id} members={teamMembers} canUpload={canUploadDocuments} />
-        ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
-            Add team members to begin building the roster.
-          </div>
-        )}
-      </div>
-
-      <FormGenerationPanel
+      <TeamMemberTable
         teamId={team.id}
-        forms={generatedFormCodes}
+        members={teamMembers}
+        canUpload={canUploadDocuments}
+        title="Team member profiles"
+        description="Admins use age, gender, telephone, and photo ID details from these profiles when generating roster PDFs."
+      />
+
+      <RosterLayoutPanel
+        teamId={team.id}
+        forms={generatedFormCodes.filter((code): code is "B1" | "B2" => code === "B1" || code === "B2")}
         members={teamMembers}
         rosters={{ B1: b1Roster, B2: b2Roster }}
         canUpload={canUploadDocuments}
@@ -138,7 +132,9 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
         </div>
 
         {memberDocuments.map((doc) => (
-          <DocumentCard key={doc.id} documentId={doc.id} formCode={doc.form_code} templateFilePath={doc.document_forms?.template_file_path} title={doc.team_members?.full_name ?? "Team member"} description="Form C - Waiver of liability" canUpload={canUploadDocuments} status={doc.status} updatedAt={doc.updated_at} fileName={doc.file_name} fileSize={doc.file_size_bytes} reviewNotes={doc.review_notes} requiresUpload />
+          <DocumentCard key={doc.id}>
+            <DocumentRow documentId={doc.id} formCode={doc.form_code} templateFilePath={doc.document_forms?.template_file_path} title={doc.team_members?.full_name ?? "Team member"} description="Form C - Waiver of liability" canUpload={canUploadDocuments} status={doc.status} updatedAt={doc.updated_at} fileName={doc.file_name} fileSize={doc.file_size_bytes} reviewNotes={doc.review_notes} requiresUpload />
+          </DocumentCard>
         ))}
 
         {memberDocuments.length === 0 ? (
@@ -151,7 +147,11 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
   );
 }
 
-function DocumentCard({
+function DocumentCard({ children }: { children: React.ReactNode }) {
+  return <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">{children}</div>;
+}
+
+function DocumentRow({
   documentId,
   formCode,
   templateFilePath,
@@ -179,7 +179,7 @@ function DocumentCard({
   requiresUpload: boolean;
 }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="p-5">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
