@@ -23,13 +23,13 @@ export function RosterLayoutPanel({
   canUpload: boolean;
 }) {
   return (
-    <section className="space-y-4">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-5">
         <h2 className="text-lg font-bold text-slate-950">Roster seating charts</h2>
         <p className="mt-1 text-sm text-slate-600">Save the seating layout for each roster form. Admins generate the final PDFs from the saved roster.</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="divide-y divide-slate-200">
         {forms.map((formCode) => (
           <RosterEditor
             key={formCode}
@@ -129,7 +129,7 @@ function RosterEditor({
   }
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="p-5">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Roster layout</p>

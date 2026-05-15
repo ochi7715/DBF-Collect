@@ -5,26 +5,37 @@ import { DocumentStatusBadge } from "@/components/document-status-badge";
 import { RosterLayoutPanel } from "@/components/form-generation-panel";
 import { TeamMemberTable } from "@/components/team-member-table";
 import { UploadDocumentForm } from "@/components/upload-document-form";
-import { getContactRoleLabel, getRequiredTeamFormCodes, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
+import { TEAM_CONTACT_ROLE_OPTIONS, getContactRoleLabel, getRequiredTeamFormCodes, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { isStaffRole, requireProfile } from "@/lib/auth";
 import { getTeamDocuments, getTeamMemberFormCDocuments } from "@/lib/documents";
 import { getTeamFormRoster } from "@/lib/rosters";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getTeamMembers } from "@/lib/team-members";
 import { canCurrentUserAccessTeam, getAccessibleTeams, getTeamById } from "@/lib/teams";
+import type { TeamContact } from "@/lib/types";
 import { formatBytes, formatDate } from "@/lib/utils";
 
-export default async function TeamDocumentsPage({ params }: { params: Promise<{ teamId: string }> }) {
+export default async function TeamDocumentsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ teamId: string }>;
+  searchParams: Promise<{ leadership?: string }>;
+}) {
   const { teamId } = await params;
+  const { leadership } = await searchParams;
   const profile = await requireProfile();
   const allowed = await canCurrentUserAccessTeam(teamId);
   if (!allowed) redirect("/portal");
+  const admin = createSupabaseAdminClient();
 
-  const [team, teams, teamDocuments, memberDocuments, teamMembers] = await Promise.all([
+  const [team, teams, teamDocuments, memberDocuments, teamMembers, { data: contacts }] = await Promise.all([
     getTeamById(teamId).catch(() => null),
     getAccessibleTeams(profile.id, profile.role),
     getTeamDocuments(teamId),
     getTeamMemberFormCDocuments(teamId),
     getTeamMembers(teamId),
+    admin.from("team_contacts").select("*, profiles(*)").eq("team_id", teamId).order("created_at", { ascending: true }),
   ]);
 
   if (!team) notFound();
@@ -56,6 +67,13 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
         </div>
         {teams.length > 1 ? <TeamSwitcher teams={teams} currentTeamId={teamId} /> : null}
       </div>
+
+      <TeamLeadershipPanel
+        teamId={team.id}
+        contacts={(contacts ?? []) as TeamContact[]}
+        currentUserId={profile.id}
+        status={leadership}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -125,30 +143,164 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
         canUpload={canUploadDocuments}
       />
 
-      <div className="space-y-4">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-950">Form C waivers</h2>
-          <p className="mt-1 text-sm text-slate-600">One waiver of liability is required for every team member.</p>
-        </div>
-
-        {memberDocuments.map((doc) => (
-          <DocumentCard key={doc.id}>
-            <DocumentRow documentId={doc.id} formCode={doc.form_code} templateFilePath={doc.document_forms?.template_file_path} title={doc.team_members?.full_name ?? "Team member"} description="Form C - Waiver of liability" canUpload={canUploadDocuments} status={doc.status} updatedAt={doc.updated_at} fileName={doc.file_name} fileSize={doc.file_size_bytes} reviewNotes={doc.review_notes} requiresUpload />
-          </DocumentCard>
-        ))}
-
-        {memberDocuments.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
-            No team members have been added yet.
-          </div>
-        ) : null}
-      </div>
+      <FormCWaiverTable documents={memberDocuments} canUpload={canUploadDocuments} />
     </section>
   );
 }
 
-function DocumentCard({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">{children}</div>;
+function TeamLeadershipPanel({
+  teamId,
+  contacts,
+  currentUserId,
+  status,
+}: {
+  teamId: string;
+  contacts: TeamContact[];
+  currentUserId: string;
+  status?: string;
+}) {
+  const currentContact = contacts.find((contact) => contact.profile_id === currentUserId && contact.is_authorized);
+  if (!currentContact) return null;
+
+  const holderByRole = new Map(contacts.map((contact) => [contact.contact_role, contact]));
+
+  return (
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 p-5">
+        <h2 className="text-lg font-bold text-slate-950">Team leadership</h2>
+        <p className="mt-1 text-sm text-slate-600">Choose the leadership role you hold for this team.</p>
+      </div>
+
+      <div className="grid gap-3 border-b border-slate-200 p-5 md:grid-cols-3">
+        {TEAM_CONTACT_ROLE_OPTIONS.map((role) => {
+          const holder = holderByRole.get(role.value);
+          const isCurrentUser = holder?.profile_id === currentUserId;
+          return (
+            <div key={role.value} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{role.label}</p>
+              <p className="mt-2 font-semibold text-slate-950">
+                {holder?.profiles?.full_name ?? holder?.profiles?.email ?? "Unassigned"}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">{isCurrentUser ? "You" : holder ? "Assigned" : "Available"}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <form action={`/api/teams/${teamId}/leadership`} method="post" className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
+        <label className="block flex-1">
+          <span className="text-sm font-medium text-slate-700">Your role</span>
+          <select
+            name="contactRole"
+            defaultValue={currentContact.contact_role}
+            className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+          >
+            {TEAM_CONTACT_ROLE_OPTIONS.map((role) => {
+              const holder = holderByRole.get(role.value);
+              const isUnavailable = Boolean(holder && holder.profile_id !== currentUserId);
+              return (
+                <option key={role.value} value={role.value} disabled={isUnavailable}>
+                  {role.label}
+                  {isUnavailable ? " - already assigned" : ""}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Save role</button>
+      </form>
+
+      {status === "saved" ? (
+        <p className="border-t border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">Leadership role saved.</p>
+      ) : null}
+      {status === "occupied" ? (
+        <p className="border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800">
+          That role is already assigned to another contact.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function FormCWaiverTable({
+  documents,
+  canUpload,
+}: {
+  documents: Awaited<ReturnType<typeof getTeamMemberFormCDocuments>>;
+  canUpload: boolean;
+}) {
+  const templateFilePath = documents[0]?.document_forms?.template_file_path;
+
+  return (
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-950">Form C waivers</h2>
+          <p className="mt-1 text-sm text-slate-600">One waiver of liability is required for every team member.</p>
+        </div>
+        {templateFilePath ? (
+          <Link href="/api/forms/C/template" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+            Download blank Form C
+          </Link>
+        ) : null}
+      </div>
+
+      {documents.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <th className="px-5 py-3">Team member</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Updated</th>
+                <th className="px-5 py-3">Current file</th>
+                <th className="px-5 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {documents.map((doc) => (
+                <tr key={doc.id} className="align-top">
+                  <td className="px-5 py-4">
+                    <p className="font-semibold text-slate-950">{doc.team_members?.full_name ?? "Team member"}</p>
+                    {doc.review_notes ? <p className="mt-2 rounded-xl bg-amber-50 p-2 text-xs text-amber-800">Admin note: {doc.review_notes}</p> : null}
+                  </td>
+                  <td className="px-5 py-4">
+                    <DocumentStatusBadge status={doc.status as any} />
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(doc.updated_at)}</td>
+                  <td className="px-5 py-4 text-slate-600">
+                    {doc.file_name ? (
+                      <div>
+                        <p>{doc.file_name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{formatBytes(doc.file_size_bytes)}</p>
+                        <Link
+                          href={`/api/documents/${doc.id}/signed-url?version=uploaded`}
+                          className="mt-2 inline-block font-semibold text-brand-600 hover:text-brand-700"
+                        >
+                          Open uploaded file
+                        </Link>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">No file uploaded</span>
+                    )}
+                  </td>
+                  <td className="min-w-[18rem] px-5 py-4">
+                    {canUpload ? (
+                      <UploadDocumentForm documentId={doc.id} />
+                    ) : (
+                      <p className="rounded-2xl bg-slate-50 p-3 text-slate-600">Uploads are disabled for your team access.</p>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="p-8 text-center text-sm text-slate-600">No team members have been added yet.</p>
+      )}
+    </div>
+  );
 }
 
 function DocumentRow({
