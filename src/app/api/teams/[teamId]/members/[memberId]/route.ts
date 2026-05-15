@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireProfile } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
-import { ensureMemberFormC } from "@/lib/documents";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -16,7 +15,7 @@ const optionalGenderSchema = z.preprocess(
   z.enum(["M", "F"]).nullable()
 );
 
-const memberSchema = z.object({
+const updateMemberSchema = z.object({
   fullName: z.string().trim().min(1).max(160),
   age: optionalAgeSchema,
   gender: optionalGenderSchema,
@@ -24,11 +23,14 @@ const memberSchema = z.object({
   photoIdNumber: optionalTextSchema(80),
 });
 
-export async function POST(request: Request, { params }: { params: Promise<{ teamId: string }> }) {
-  const { teamId } = await params;
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ teamId: string; memberId: string }> }
+) {
+  const { teamId, memberId } = await params;
   const profile = await requireProfile();
   const formData = await request.formData();
-  const parsed = memberSchema.parse({
+  const parsed = updateMemberSchema.parse({
     fullName: formData.get("fullName"),
     age: formData.get("age"),
     gender: formData.get("gender"),
@@ -37,34 +39,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   });
 
   const supabase = await createSupabaseServerClient();
-  const { data: allowed, error: allowedError } = await supabase.rpc("can_upload_team_documents", { target_team_id: teamId });
+  const { data: allowed, error: allowedError } = await supabase.rpc("can_upload_team_documents", {
+    target_team_id: teamId,
+  });
   if (allowedError || !allowed) redirect("/portal");
 
   const admin = createSupabaseAdminClient();
-  const { data: member, error } = await admin
+  const { error } = await admin
     .from("team_members")
-    .insert({
-      team_id: teamId,
+    .update({
       full_name: parsed.fullName,
       age: parsed.age,
       gender: parsed.gender,
       telephone: parsed.telephone,
       photo_id_number: parsed.photoIdNumber,
-      created_by: profile.id,
+      updated_at: new Date().toISOString(),
     })
-    .select("id")
-    .single();
+    .eq("id", memberId)
+    .eq("team_id", teamId);
 
   if (error) throw error;
-
-  await ensureMemberFormC(teamId, member.id);
 
   await writeAuditLog({
     actorId: profile.id,
     teamId,
     entityType: "team_member",
-    entityId: member.id,
-    action: "team_member_created",
+    entityId: memberId,
+    action: "team_member_updated",
     details: {
       fullName: parsed.fullName,
       age: parsed.age,

@@ -174,11 +174,44 @@ create table if not exists public.team_members (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
   full_name text not null,
+  age int,
+  gender text,
+  telephone text,
+  photo_id_number text,
   status text not null default 'active',
   created_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint team_members_age_check check (age is null or age between 1 and 130),
+  constraint team_members_gender_check check (gender is null or gender in ('M', 'F')),
   unique(team_id, full_name)
+);
+
+alter table public.team_members
+  add column if not exists age int,
+  add column if not exists gender text,
+  add column if not exists telephone text,
+  add column if not exists photo_id_number text;
+
+alter table public.team_members
+  drop constraint if exists team_members_age_check,
+  add constraint team_members_age_check check (age is null or age between 1 and 130);
+
+alter table public.team_members
+  drop constraint if exists team_members_gender_check,
+  add constraint team_members_gender_check check (gender is null or gender in ('M', 'F'));
+
+create table if not exists public.team_form_rosters (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  form_code public.document_form_code not null,
+  layout jsonb not null default '{}'::jsonb,
+  captain_seat_key text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint team_form_rosters_form_code_check check (form_code in ('B1', 'B2')),
+  unique(team_id, form_code)
 );
 
 create table if not exists public.document_forms (
@@ -257,6 +290,7 @@ create index if not exists idx_team_contacts_profile_id on public.team_contacts(
 create index if not exists idx_team_invitations_token on public.team_invitations(token);
 create index if not exists idx_team_invitations_team_status on public.team_invitations(team_id, status);
 create index if not exists idx_team_members_team_id on public.team_members(team_id);
+create index if not exists idx_team_form_rosters_team_id on public.team_form_rosters(team_id);
 create index if not exists idx_documents_team_id on public.dragon_boat_documents(team_id);
 create index if not exists idx_documents_team_member_id on public.dragon_boat_documents(team_member_id);
 create index if not exists idx_documents_status on public.dragon_boat_documents(status);
@@ -298,6 +332,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists set_team_members_updated_at on public.team_members;
 create trigger set_team_members_updated_at
 before update on public.team_members
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_team_form_rosters_updated_at on public.team_form_rosters;
+create trigger set_team_form_rosters_updated_at
+before update on public.team_form_rosters
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_document_forms_updated_at on public.document_forms;
@@ -433,6 +472,7 @@ alter table public.teams enable row level security;
 alter table public.team_contacts enable row level security;
 alter table public.team_invitations enable row level security;
 alter table public.team_members enable row level security;
+alter table public.team_form_rosters enable row level security;
 alter table public.document_forms enable row level security;
 alter table public.dragon_boat_documents enable row level security;
 alter table public.audit_logs enable row level security;
@@ -503,6 +543,20 @@ create policy "team_members_insert_uploaders" on public.team_members
 for insert with check (public.can_upload_team_documents(team_id));
 
 create policy "team_members_update_uploaders" on public.team_members
+for update using (public.can_upload_team_documents(team_id))
+with check (public.can_upload_team_documents(team_id));
+
+drop policy if exists "team_form_rosters_select_authorized" on public.team_form_rosters;
+drop policy if exists "team_form_rosters_insert_uploaders" on public.team_form_rosters;
+drop policy if exists "team_form_rosters_update_uploaders" on public.team_form_rosters;
+
+create policy "team_form_rosters_select_authorized" on public.team_form_rosters
+for select using (public.can_access_team(team_id));
+
+create policy "team_form_rosters_insert_uploaders" on public.team_form_rosters
+for insert with check (public.can_upload_team_documents(team_id));
+
+create policy "team_form_rosters_update_uploaders" on public.team_form_rosters
 for update using (public.can_upload_team_documents(team_id))
 with check (public.can_upload_team_documents(team_id));
 

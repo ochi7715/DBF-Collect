@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TeamSwitcher } from "@/components/team-switcher";
 import { DocumentStatusBadge } from "@/components/document-status-badge";
+import { FormGenerationPanel } from "@/components/form-generation-panel";
 import { UploadDocumentForm } from "@/components/upload-document-form";
 import { getContactRoleLabel, getRequiredTeamFormCodes, getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { isStaffRole, requireProfile } from "@/lib/auth";
 import { getTeamDocuments, getTeamMemberFormCDocuments } from "@/lib/documents";
+import { getTeamFormRoster } from "@/lib/rosters";
+import { getTeamMembers } from "@/lib/team-members";
 import { canCurrentUserAccessTeam, getAccessibleTeams, getTeamById } from "@/lib/teams";
 import { formatBytes, formatDate } from "@/lib/utils";
 
@@ -15,11 +18,12 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
   const allowed = await canCurrentUserAccessTeam(teamId);
   if (!allowed) redirect("/portal");
 
-  const [team, teams, teamDocuments, memberDocuments] = await Promise.all([
+  const [team, teams, teamDocuments, memberDocuments, teamMembers] = await Promise.all([
     getTeamById(teamId).catch(() => null),
     getAccessibleTeams(profile.id, profile.role),
     getTeamDocuments(teamId),
     getTeamMemberFormCDocuments(teamId),
+    getTeamMembers(teamId),
   ]);
 
   if (!team) notFound();
@@ -27,6 +31,13 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
   const teamAccess = teams.find((item) => item.id === teamId);
   const canUploadDocuments = isStaffRole(profile.role) || teamAccess?.can_upload_documents !== false;
   const requiredFormCodes = getRequiredTeamFormCodes(team.race_categories?.rule_set);
+  const generatedFormCodes = requiredFormCodes.filter((code): code is "A1" | "A2" | "B1" | "B2" =>
+    ["A1", "A2", "B1", "B2"].includes(code)
+  );
+  const [b1Roster, b2Roster] = await Promise.all([
+    generatedFormCodes.includes("B1") ? getTeamFormRoster(teamId, "B1") : Promise.resolve(null),
+    generatedFormCodes.includes("B2") ? getTeamFormRoster(teamId, "B2") : Promise.resolve(null),
+  ]);
 
   return (
     <section className="space-y-6">
@@ -57,14 +68,36 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
           ))}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-950">Add team member</h2>
-          <p className="mt-1 text-sm text-slate-600">Add each paddler by name, then upload their Form C waiver.</p>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-950">Add team member</h2>
+          <p className="mt-1 text-sm text-slate-600">Add each team member, then upload their Form C waiver.</p>
           {canUploadDocuments ? (
             <form action={`/api/teams/${team.id}/members`} method="post" className="mt-4 space-y-4">
               <label className="block">
                 <span className="text-sm font-medium text-slate-700">Member name</span>
                 <input name="fullName" required maxLength={160} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Age</span>
+                  <input name="age" type="number" min={1} max={130} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Gender</span>
+                  <select name="gender" className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+                    <option value="">Select</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Telephone #</span>
+                <input name="telephone" maxLength={40} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Photo ID #</span>
+                <input name="photoIdNumber" maxLength={80} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
               </label>
               <button className="focus-ring w-full rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Add member</button>
             </form>
@@ -73,6 +106,102 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
           )}
         </div>
       </div>
+
+      <div className="space-y-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-950">Team member profiles</h2>
+          <p className="mt-1 text-sm text-slate-600">Roster PDFs use age, gender, telephone, and photo ID details from these profiles.</p>
+        </div>
+
+        {teamMembers.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {teamMembers.map((member) => (
+              <form
+                key={member.id}
+                action={`/api/teams/${team.id}/members/${member.id}`}
+                method="post"
+                className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2"
+              >
+                <label className="block sm:col-span-2">
+                  <span className="text-sm font-medium text-slate-700">Member name</span>
+                  <input
+                    name="fullName"
+                    required
+                    maxLength={160}
+                    defaultValue={member.full_name}
+                    disabled={!canUploadDocuments}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Age</span>
+                  <input
+                    name="age"
+                    type="number"
+                    min={1}
+                    max={130}
+                    defaultValue={member.age ?? ""}
+                    disabled={!canUploadDocuments}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Gender</span>
+                  <select
+                    name="gender"
+                    defaultValue={member.gender ?? ""}
+                    disabled={!canUploadDocuments}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 disabled:bg-slate-50"
+                  >
+                    <option value="">Select</option>
+                    <option value="F">Female</option>
+                    <option value="M">Male</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Telephone #</span>
+                  <input
+                    name="telephone"
+                    maxLength={40}
+                    defaultValue={member.telephone ?? ""}
+                    disabled={!canUploadDocuments}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Photo ID #</span>
+                  <input
+                    name="photoIdNumber"
+                    maxLength={80}
+                    defaultValue={member.photo_id_number ?? ""}
+                    disabled={!canUploadDocuments}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 disabled:bg-slate-50"
+                  />
+                </label>
+                {canUploadDocuments ? (
+                  <div className="sm:col-span-2">
+                    <button className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                      Save member details
+                    </button>
+                  </div>
+                ) : null}
+              </form>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
+            Add team members to begin building the roster.
+          </div>
+        )}
+      </div>
+
+      <FormGenerationPanel
+        teamId={team.id}
+        forms={generatedFormCodes}
+        members={teamMembers}
+        rosters={{ B1: b1Roster, B2: b2Roster }}
+        canUpload={canUploadDocuments}
+      />
 
       <div className="space-y-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -88,7 +88,22 @@ export type TeamMember = {
   id: string;
   team_id: string;
   full_name: string;
+  age: number | null;
+  gender: "M" | "F" | null;
+  telephone: string | null;
+  photo_id_number: string | null;
   status: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TeamFormRoster = {
+  id: string;
+  team_id: string;
+  form_code: "B1" | "B2";
+  layout: Record<string, string | null>;
+  captain_seat_key: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
