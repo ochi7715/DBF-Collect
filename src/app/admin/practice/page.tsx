@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import {
   PRACTICE_SLOT_OPTIONS,
   formatPracticeSlotLabel,
   formatPracticeWeekLabel,
+  getPracticeAssignmentKindLabel,
   getPracticeSlotInputName,
   getPracticeWeekStart,
   isMissingPracticeSchemaError,
@@ -15,6 +17,7 @@ import type {
   PracticeSlotCapacity,
   TeamPracticeAssignment,
   TeamPracticeAttendance,
+  TeamPracticeSeatingChart,
 } from "@/lib/types";
 
 export default async function AdminPracticePage({
@@ -27,14 +30,15 @@ export default async function AdminPracticePage({
   const admin = createSupabaseAdminClient();
   const currentWeekStart = toDateOnly(getPracticeWeekStart());
 
-  const [capacitiesResult, teamsResult, assignmentsResult, attendanceResult] = await Promise.all([
+  const [capacitiesResult, teamsResult, assignmentsResult, attendanceResult, chartsResult] = await Promise.all([
     admin.from("practice_slot_capacities").select("*").order("slot_start_time", { ascending: true }),
     admin.from("teams").select("*, race_categories(*)").order("name", { ascending: true }),
     admin.from("team_practice_assignments").select("*"),
     admin.from("team_practice_attendance").select("*").eq("practice_week_start", currentWeekStart),
+    admin.from("team_practice_seating_charts").select("*").eq("practice_week_start", currentWeekStart),
   ]);
 
-  const practiceError = capacitiesResult.error ?? assignmentsResult.error ?? attendanceResult.error;
+  const practiceError = capacitiesResult.error ?? assignmentsResult.error ?? attendanceResult.error ?? chartsResult.error;
   if (practiceError) {
     if (isMissingPracticeSchemaError(practiceError)) {
       return <PracticeSetupNotice />;
@@ -46,9 +50,11 @@ export default async function AdminPracticePage({
   const capacityRows = (capacitiesResult.data ?? []) as PracticeSlotCapacity[];
   const assignmentRows = (assignmentsResult.data ?? []) as TeamPracticeAssignment[];
   const attendanceRows = (attendanceResult.data ?? []) as TeamPracticeAttendance[];
+  const chartRows = (chartsResult.data ?? []) as TeamPracticeSeatingChart[];
   const capacityBySlot = new Map(capacityRows.map((row) => [normalizePracticeSlot(row.slot_start_time), row]));
-  const assignmentByTeam = new Map(assignmentRows.map((row) => [row.team_id, row]));
-  const attendanceByTeam = new Map(attendanceRows.map((row) => [row.team_id, row]));
+  const assignmentByTeamKind = new Map(assignmentRows.map((row) => [`${row.team_id}:${row.assignment_kind}`, row]));
+  const attendanceByTeamKind = new Map(attendanceRows.map((row) => [`${row.team_id}:${row.assignment_kind}`, row]));
+  const chartByTeamKind = new Map(chartRows.map((row) => [`${row.team_id}:${row.assignment_kind}`, row]));
   const assignedCountBySlot = new Map<string, number>();
   for (const assignment of assignmentRows) {
     const slot = normalizePracticeSlot(assignment.slot_start_time);
@@ -65,7 +71,7 @@ export default async function AdminPracticePage({
         </div>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Practice schedule</h1>
         <p className="mt-2 text-slate-600">
-          Set interval capacity, assign recurring one-hour slots, and review this week&apos;s attendance responses.
+          Set interval capacity, assign up to two recurring one-hour slots per team, and review this week&apos;s attendance responses.
         </p>
       </div>
 
@@ -114,15 +120,21 @@ export default async function AdminPracticePage({
                   <tr>
                     <th className="px-4 py-3">Team</th>
                     <th className="px-4 py-3">Race category</th>
-                    <th className="px-4 py-3">Recurring slot</th>
+                    <th className="px-4 py-3">Primary slot</th>
+                    <th className="px-4 py-3">Additional slot</th>
                     <th className="px-4 py-3">This week</th>
+                    <th className="px-4 py-3">Charts</th>
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {(teamsResult.data ?? []).map((team) => {
-                    const assignment = assignmentByTeam.get(team.id);
-                    const attendanceRow = attendanceByTeam.get(team.id);
+                    const primaryAssignment = assignmentByTeamKind.get(`${team.id}:primary`);
+                    const additionalAssignment = assignmentByTeamKind.get(`${team.id}:additional`);
+                    const primaryAttendance = attendanceByTeamKind.get(`${team.id}:primary`);
+                    const additionalAttendance = attendanceByTeamKind.get(`${team.id}:additional`);
+                    const primaryChart = chartByTeamKind.get(`${team.id}:primary`);
+                    const additionalChart = chartByTeamKind.get(`${team.id}:additional`);
                     const formId = `practice-assignment-${team.id}`;
                     return (
                       <tr key={team.id}>
@@ -131,8 +143,8 @@ export default async function AdminPracticePage({
                         <td className="px-4 py-3">
                           <select
                             form={formId}
-                            name="slotStartTime"
-                            defaultValue={normalizePracticeSlot(assignment?.slot_start_time) ?? ""}
+                            name="primarySlotStartTime"
+                            defaultValue={normalizePracticeSlot(primaryAssignment?.slot_start_time) ?? ""}
                             className="focus-ring min-w-48 rounded-xl border border-slate-300 bg-white px-3 py-2"
                           >
                             <option value="">No practice slot</option>
@@ -148,13 +160,35 @@ export default async function AdminPracticePage({
                           </select>
                         </td>
                         <td className="px-4 py-3">
-                          {attendanceRow ? (
-                            <span className={attendanceRow.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
-                              {attendanceRow.response === "confirmed" ? "Confirmed" : "No attendance"}
-                            </span>
-                          ) : (
-                            <span className="text-slate-500">No response</span>
-                          )}
+                          <select
+                            form={formId}
+                            name="additionalSlotStartTime"
+                            defaultValue={normalizePracticeSlot(additionalAssignment?.slot_start_time) ?? ""}
+                            className="focus-ring min-w-48 rounded-xl border border-slate-300 bg-white px-3 py-2"
+                          >
+                            <option value="">No additional slot</option>
+                            {PRACTICE_SLOT_OPTIONS.map((slot) => {
+                              const capacity = capacityBySlot.get(slot)?.capacity ?? 0;
+                              const assigned = assignedCountBySlot.get(slot) ?? 0;
+                              return (
+                                <option key={slot} value={slot}>
+                                  {formatPracticeSlotLabel(slot)} ({assigned}/{capacity})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1">
+                            <AttendanceSummary label={getPracticeAssignmentKindLabel("primary")} attendance={primaryAttendance} assigned={Boolean(primaryAssignment)} />
+                            <AttendanceSummary label={getPracticeAssignmentKindLabel("additional")} attendance={additionalAttendance} assigned={Boolean(additionalAssignment)} />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1">
+                            <ChartSummary label={getPracticeAssignmentKindLabel("primary")} chart={primaryChart} assigned={Boolean(primaryAssignment)} />
+                            <ChartSummary label={getPracticeAssignmentKindLabel("additional")} chart={additionalChart} assigned={Boolean(additionalAssignment)} />
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
@@ -231,9 +265,63 @@ function getStatusCopy(status: string) {
       return "Practice slot assignment cleared.";
     case "slot-full":
       return "That practice slot is already at capacity.";
+    case "duplicate-slots":
+      return "Primary and additional practice slots must be different.";
+    case "additional-needs-primary":
+      return "Assign a primary practice slot before adding an additional one.";
     case "capacity-too-low":
       return "Capacity cannot be set below the number of teams already assigned to that interval.";
     default:
       return "Practice schedule updated.";
   }
+}
+
+function AttendanceSummary({
+  label,
+  attendance,
+  assigned,
+}: {
+  label: string;
+  attendance: TeamPracticeAttendance | undefined;
+  assigned: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      {!assigned ? (
+        <span className="text-xs text-slate-500">Not assigned</span>
+      ) : attendance ? (
+        <span className={attendance.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
+          {attendance.response === "confirmed" ? "Confirmed" : "No attendance"}
+        </span>
+      ) : (
+        <span className="text-xs text-slate-500">No response</span>
+      )}
+    </div>
+  );
+}
+
+function ChartSummary({
+  label,
+  chart,
+  assigned,
+}: {
+  label: string;
+  chart: TeamPracticeSeatingChart | undefined;
+  assigned: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      {!assigned ? (
+        <span className="text-xs text-slate-500">Not assigned</span>
+      ) : chart ? (
+        <Link href={`/api/practice-seating-charts/${chart.id}/signed-url`} className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+          Open chart
+        </Link>
+      ) : (
+        <span className="text-xs text-slate-500">Not uploaded</span>
+      )}
+    </div>
+  );
 }

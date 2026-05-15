@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const attendanceSchema = z.object({
   weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  assignmentKind: z.enum(["primary", "additional"]),
   response: z.enum(["confirmed", "no_attendance"]),
 });
 
@@ -16,6 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   const formData = await request.formData();
   const parsed = attendanceSchema.parse({
     weekStart: formData.get("weekStart"),
+    assignmentKind: formData.get("assignmentKind"),
     response: formData.get("response"),
   });
 
@@ -30,6 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     .from("team_practice_assignments")
     .select("id")
     .eq("team_id", teamId)
+    .eq("assignment_kind", parsed.assignmentKind)
     .maybeSingle();
   if (assignmentError) throw assignmentError;
   if (!assignment) redirect("/portal/practice");
@@ -40,12 +43,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
       {
         team_id: teamId,
         practice_week_start: parsed.weekStart,
+        assignment_kind: parsed.assignmentKind,
         response: parsed.response,
         responded_by: profile.id,
         responded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "team_id,practice_week_start" }
+      { onConflict: "team_id,practice_week_start,assignment_kind" }
     )
     .select("id")
     .single();

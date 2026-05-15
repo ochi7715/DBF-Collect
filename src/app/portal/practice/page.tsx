@@ -1,15 +1,25 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
+import { UploadPracticeSeatingChartForm } from "@/components/upload-practice-seating-chart-form";
 import { requireProfile, isStaffRole } from "@/lib/auth";
 import {
   formatPracticeSlotLabel,
   formatPracticeWeekLabel,
+  getPracticeAssignmentKindLabel,
   getPracticeAssignmentsForTeams,
   getPracticeAttendanceForTeams,
+  getPracticeSeatingChartsForTeams,
   getUpcomingPracticeWeeks,
   isMissingPracticeSchemaError,
   toDateOnly,
 } from "@/lib/practice";
 import { getAccessibleTeams } from "@/lib/teams";
+import type {
+  PracticeAssignmentKind,
+  TeamPracticeAssignment,
+  TeamPracticeAttendance,
+  TeamPracticeSeatingChart,
+} from "@/lib/types";
 
 export default async function PracticeSchedulePage() {
   const profile = await requireProfile();
@@ -17,13 +27,15 @@ export default async function PracticeSchedulePage() {
   const teamIds = teams.map((team) => team.id);
   const weeks = getUpcomingPracticeWeeks();
   const weekStarts = weeks.map(toDateOnly);
-  let assignments = [];
-  let attendance = [];
+  let assignments: TeamPracticeAssignment[] = [];
+  let attendance: TeamPracticeAttendance[] = [];
+  let charts: TeamPracticeSeatingChart[] = [];
 
   try {
-    [assignments, attendance] = await Promise.all([
+    [assignments, attendance, charts] = await Promise.all([
       getPracticeAssignmentsForTeams(teamIds),
       getPracticeAttendanceForTeams(teamIds, weekStarts),
+      getPracticeSeatingChartsForTeams(teamIds, weekStarts),
     ]);
   } catch (error) {
     if (isMissingPracticeSchemaError(error)) {
@@ -32,9 +44,17 @@ export default async function PracticeSchedulePage() {
     throw error;
   }
 
-  const assignmentByTeam = new Map(assignments.map((assignment) => [assignment.team_id, assignment]));
-  const attendanceByTeamWeek = new Map(
-    attendance.map((row) => [`${row.team_id}:${row.practice_week_start}`, row])
+  const assignmentsByTeam = new Map<string, TeamPracticeAssignment[]>();
+  for (const assignment of assignments) {
+    const rows = assignmentsByTeam.get(assignment.team_id) ?? [];
+    rows.push(assignment);
+    assignmentsByTeam.set(assignment.team_id, rows);
+  }
+  const attendanceByTeamKindWeek = new Map(
+    attendance.map((row) => [`${row.team_id}:${row.assignment_kind}:${row.practice_week_start}`, row])
+  );
+  const chartByTeamKindWeek = new Map(
+    charts.map((row) => [`${row.team_id}:${row.assignment_kind}:${row.practice_week_start}`, row])
   );
 
   return (
@@ -46,7 +66,7 @@ export default async function PracticeSchedulePage() {
         </div>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Weekly practice</h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Review your recurring practice slot and respond for each upcoming week.
+          Review your weekend practice sessions, confirm attendance, and preupload seating charts before each session.
         </p>
       </div>
 
@@ -57,8 +77,11 @@ export default async function PracticeSchedulePage() {
       ) : (
         <div className="space-y-4">
           {teams.map((team) => {
-            const assignment = assignmentByTeam.get(team.id);
+            const teamAssignments = [...(assignmentsByTeam.get(team.id) ?? [])].sort(
+              (a, b) => assignmentKindOrder(a.assignment_kind) - assignmentKindOrder(b.assignment_kind)
+            );
             const canRespond = isStaffRole(profile.role) || team.can_upload_documents !== false;
+            const canUploadCharts = isStaffRole(profile.role) || team.contact_role === "captain";
             return (
               <article key={team.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
@@ -66,52 +89,33 @@ export default async function PracticeSchedulePage() {
                     <h2 className="text-xl font-bold text-slate-950">{team.name}</h2>
                     <p className="mt-1 text-sm text-slate-600">{team.race_categories?.name ?? "Race category pending"}</p>
                   </div>
-                  <div className="rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">
-                    {assignment ? formatPracticeSlotLabel(assignment.slot_start_time) : "No practice slot assigned"}
-                  </div>
+                  {teamAssignments.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {teamAssignments.map((assignment) => (
+                        <div key={assignment.id} className="rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">
+                          {getPracticeAssignmentKindLabel(assignment.assignment_kind)}: {formatPracticeSlotLabel(assignment.slot_start_time)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600">No practice slot assigned</div>
+                  )}
                 </div>
 
-                {assignment ? (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">Week of</th>
-                          <th className="px-4 py-3">Response</th>
-                          <th className="px-4 py-3 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 bg-white">
-                        {weeks.map((week) => {
-                          const weekStart = toDateOnly(week);
-                          const response = attendanceByTeamWeek.get(`${team.id}:${weekStart}`);
-                          return (
-                            <tr key={weekStart}>
-                              <td className="px-4 py-3 font-semibold text-slate-900">{formatPracticeWeekLabel(week)}</td>
-                              <td className="px-4 py-3">
-                                {response ? (
-                                  <span className={response.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
-                                    {response.response === "confirmed" ? "Confirmed" : "No attendance"}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-500">No response yet</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                {canRespond ? (
-                                  <div className="flex justify-end gap-2">
-                                    <AttendanceButton teamId={team.id} weekStart={weekStart} response="confirmed" label="Confirm attendance" />
-                                    <AttendanceButton teamId={team.id} weekStart={weekStart} response="no_attendance" label="No attendance" />
-                                  </div>
-                                ) : (
-                                  <p className="text-right text-slate-500">View only</p>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                {teamAssignments.length > 0 ? (
+                  <div className="mt-4 space-y-4">
+                    {teamAssignments.map((assignment) => (
+                      <PracticeSessionTable
+                        key={assignment.id}
+                        assignment={assignment}
+                        attendanceByTeamKindWeek={attendanceByTeamKindWeek}
+                        chartByTeamKindWeek={chartByTeamKindWeek}
+                        canRespond={canRespond}
+                        canUploadCharts={canUploadCharts}
+                        teamId={team.id}
+                        weeks={weeks}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <p className="mt-4 text-sm text-slate-600">This team does not currently have a weekly practice slot.</p>
@@ -122,6 +126,108 @@ export default async function PracticeSchedulePage() {
         </div>
       )}
     </section>
+  );
+}
+
+function assignmentKindOrder(kind: PracticeAssignmentKind) {
+  return kind === "primary" ? 0 : 1;
+}
+
+function PracticeSessionTable({
+  assignment,
+  attendanceByTeamKindWeek,
+  chartByTeamKindWeek,
+  canRespond,
+  canUploadCharts,
+  teamId,
+  weeks,
+}: {
+  assignment: TeamPracticeAssignment;
+  attendanceByTeamKindWeek: Map<string, TeamPracticeAttendance>;
+  chartByTeamKindWeek: Map<string, TeamPracticeSeatingChart>;
+  canRespond: boolean;
+  canUploadCharts: boolean;
+  teamId: string;
+  weeks: Date[];
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-sm font-bold text-slate-900">
+          {getPracticeAssignmentKindLabel(assignment.assignment_kind)} | {formatPracticeSlotLabel(assignment.slot_start_time)}
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="bg-white text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Week of</th>
+              <th className="px-4 py-3">Response</th>
+              <th className="px-4 py-3">Seating chart</th>
+              <th className="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 bg-white">
+            {weeks.map((week) => {
+              const weekStart = toDateOnly(week);
+              const key = `${teamId}:${assignment.assignment_kind}:${weekStart}`;
+              const response = attendanceByTeamKindWeek.get(key);
+              const chart = chartByTeamKindWeek.get(key);
+              return (
+                <tr key={weekStart}>
+                  <td className="px-4 py-3 font-semibold text-slate-900">{formatPracticeWeekLabel(week)}</td>
+                  <td className="px-4 py-3">
+                    {response ? (
+                      <span className={response.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
+                        {response.response === "confirmed" ? "Confirmed" : "No attendance"}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">No response yet</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    {chart ? (
+                      <div className="space-y-2">
+                        <Link href={`/api/practice-seating-charts/${chart.id}/signed-url`} className="font-semibold text-brand-600 hover:text-brand-700">
+                          {chart.file_name}
+                        </Link>
+                        {canUploadCharts ? (
+                          <UploadPracticeSeatingChartForm
+                            teamId={teamId}
+                            weekStart={weekStart}
+                            assignmentKind={assignment.assignment_kind}
+                            compact
+                          />
+                        ) : null}
+                      </div>
+                    ) : canUploadCharts ? (
+                      <UploadPracticeSeatingChartForm
+                        teamId={teamId}
+                        weekStart={weekStart}
+                        assignmentKind={assignment.assignment_kind}
+                        compact
+                      />
+                    ) : (
+                      <span className="text-slate-500">Not uploaded</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {canRespond ? (
+                      <div className="flex justify-end gap-2">
+                        <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignment.assignment_kind} response="confirmed" label="Confirm attendance" />
+                        <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignment.assignment_kind} response="no_attendance" label="No attendance" />
+                      </div>
+                    ) : (
+                      <p className="text-right text-slate-500">View only</p>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -145,17 +251,20 @@ function PracticeSetupNotice() {
 function AttendanceButton({
   teamId,
   weekStart,
+  assignmentKind,
   response,
   label,
 }: {
   teamId: string;
   weekStart: string;
+  assignmentKind: PracticeAssignmentKind;
   response: "confirmed" | "no_attendance";
   label: string;
 }) {
   return (
     <form action={`/api/teams/${teamId}/practice-attendance`} method="post">
       <input type="hidden" name="weekStart" value={weekStart} />
+      <input type="hidden" name="assignmentKind" value={assignmentKind} />
       <input type="hidden" name="response" value={response} />
       <button className={response === "confirmed" ? "focus-ring rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700" : "focus-ring rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"}>
         {label}

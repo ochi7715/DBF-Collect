@@ -1,8 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  PracticeAssignmentKind,
   PracticeSlotCapacity,
   TeamPracticeAssignment,
   TeamPracticeAttendance,
+  TeamPracticeSeatingChart,
 } from "@/lib/types";
 
 export const PRACTICE_SLOT_OPTIONS = Array.from({ length: 13 }, (_, index) => {
@@ -11,6 +13,8 @@ export const PRACTICE_SLOT_OPTIONS = Array.from({ length: 13 }, (_, index) => {
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 });
+
+export const PRACTICE_ASSIGNMENT_KINDS: PracticeAssignmentKind[] = ["primary", "additional"];
 
 export function getPracticeSlotInputName(slot: string) {
   return `capacity_${slot.replace(":", "")}`;
@@ -38,6 +42,10 @@ export function formatPracticeSlotLabel(value: string | null | undefined) {
     minute: "2-digit",
   }).format(endDate);
   return `${start} - ${end}`;
+}
+
+export function getPracticeAssignmentKindLabel(kind: PracticeAssignmentKind) {
+  return kind === "additional" ? "Additional slot" : "Primary slot";
 }
 
 export function getUpcomingPracticeWeeks(count = 4, today = new Date()) {
@@ -88,7 +96,9 @@ export function isMissingPracticeSchemaError(error: unknown) {
     candidate?.code === "PGRST205" ||
     Boolean(candidate?.message?.includes("practice_slot_capacities")) ||
     Boolean(candidate?.message?.includes("team_practice_assignments")) ||
-    Boolean(candidate?.message?.includes("team_practice_attendance"))
+    Boolean(candidate?.message?.includes("team_practice_attendance")) ||
+    Boolean(candidate?.message?.includes("team_practice_seating_charts")) ||
+    Boolean(candidate?.message?.includes("assignment_kind"))
   );
 }
 
@@ -117,6 +127,20 @@ export async function getPracticeAttendanceForTeams(teamIds: string[], weekStart
 
   if (error) throw error;
   return (data ?? []) as TeamPracticeAttendance[];
+}
+
+export async function getPracticeSeatingChartsForTeams(teamIds: string[], weekStarts: string[]) {
+  if (teamIds.length === 0 || weekStarts.length === 0) return [] as TeamPracticeSeatingChart[];
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("team_practice_seating_charts")
+    .select("*")
+    .in("team_id", teamIds)
+    .in("practice_week_start", weekStarts);
+
+  if (error) throw error;
+  return (data ?? []) as TeamPracticeSeatingChart[];
 }
 
 function addDays(value: Date, days: number) {

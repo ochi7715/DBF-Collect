@@ -107,6 +107,16 @@ end $$;
 alter type public.practice_attendance_status add value if not exists 'confirmed';
 alter type public.practice_attendance_status add value if not exists 'no_attendance';
 
+do $$
+begin
+  create type public.practice_assignment_kind as enum ('primary', 'additional');
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.practice_assignment_kind add value if not exists 'primary';
+alter type public.practice_assignment_kind add value if not exists 'additional';
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
@@ -234,7 +244,8 @@ create table if not exists public.practice_slot_capacities (
 
 create table if not exists public.team_practice_assignments (
   id uuid primary key default gen_random_uuid(),
-  team_id uuid not null unique references public.teams(id) on delete cascade,
+  team_id uuid not null references public.teams(id) on delete cascade,
+  assignment_kind public.practice_assignment_kind not null default 'primary',
   slot_start_time time not null references public.practice_slot_capacities(slot_start_time),
   assigned_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
@@ -245,13 +256,39 @@ create table if not exists public.team_practice_attendance (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
   practice_week_start date not null,
+  assignment_kind public.practice_assignment_kind not null default 'primary',
   response public.practice_attendance_status not null,
   responded_by uuid references public.profiles(id),
   responded_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique(team_id, practice_week_start)
+  updated_at timestamptz not null default now()
 );
+
+create table if not exists public.team_practice_seating_charts (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  practice_week_start date not null,
+  assignment_kind public.practice_assignment_kind not null default 'primary',
+  uploaded_by uuid references public.profiles(id),
+  file_path text not null,
+  file_name text not null,
+  mime_type text not null,
+  file_size_bytes bigint not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.team_practice_assignments
+  add column if not exists assignment_kind public.practice_assignment_kind not null default 'primary';
+
+alter table public.team_practice_attendance
+  add column if not exists assignment_kind public.practice_assignment_kind not null default 'primary';
+
+alter table public.team_practice_assignments
+  drop constraint if exists team_practice_assignments_team_id_key;
+
+alter table public.team_practice_attendance
+  drop constraint if exists team_practice_attendance_team_id_practice_week_start_key;
 
 create table if not exists public.document_forms (
   code public.document_form_code primary key,
@@ -331,7 +368,12 @@ create index if not exists idx_team_invitations_team_status on public.team_invit
 create index if not exists idx_team_members_team_id on public.team_members(team_id);
 create index if not exists idx_team_form_rosters_team_id on public.team_form_rosters(team_id);
 create index if not exists idx_team_practice_assignments_slot on public.team_practice_assignments(slot_start_time);
+create unique index if not exists idx_team_practice_assignments_team_kind_unique on public.team_practice_assignments(team_id, assignment_kind);
+drop index if exists public.idx_team_practice_assignments_team_slot_unique;
+create unique index if not exists idx_team_practice_attendance_team_week_kind_unique on public.team_practice_attendance(team_id, practice_week_start, assignment_kind);
 create index if not exists idx_team_practice_attendance_team_week on public.team_practice_attendance(team_id, practice_week_start desc);
+create unique index if not exists idx_team_practice_seating_charts_team_week_kind_unique on public.team_practice_seating_charts(team_id, practice_week_start, assignment_kind);
+create index if not exists idx_team_practice_seating_charts_team_week on public.team_practice_seating_charts(team_id, practice_week_start desc);
 create index if not exists idx_documents_team_id on public.dragon_boat_documents(team_id);
 create index if not exists idx_documents_team_member_id on public.dragon_boat_documents(team_member_id);
 create index if not exists idx_documents_status on public.dragon_boat_documents(status);
@@ -393,6 +435,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists set_team_practice_attendance_updated_at on public.team_practice_attendance;
 create trigger set_team_practice_attendance_updated_at
 before update on public.team_practice_attendance
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_team_practice_seating_charts_updated_at on public.team_practice_seating_charts;
+create trigger set_team_practice_seating_charts_updated_at
+before update on public.team_practice_seating_charts
 for each row execute function public.set_updated_at();
 
 drop trigger if exists set_document_forms_updated_at on public.document_forms;
@@ -532,6 +579,7 @@ alter table public.team_form_rosters enable row level security;
 alter table public.practice_slot_capacities enable row level security;
 alter table public.team_practice_assignments enable row level security;
 alter table public.team_practice_attendance enable row level security;
+alter table public.team_practice_seating_charts enable row level security;
 alter table public.document_forms enable row level security;
 alter table public.dragon_boat_documents enable row level security;
 alter table public.audit_logs enable row level security;
@@ -648,6 +696,20 @@ create policy "team_practice_attendance_insert_uploaders" on public.team_practic
 for insert with check (public.can_upload_team_documents(team_id));
 
 create policy "team_practice_attendance_update_uploaders" on public.team_practice_attendance
+for update using (public.can_upload_team_documents(team_id))
+with check (public.can_upload_team_documents(team_id));
+
+drop policy if exists "team_practice_seating_charts_select_authorized" on public.team_practice_seating_charts;
+drop policy if exists "team_practice_seating_charts_insert_uploaders" on public.team_practice_seating_charts;
+drop policy if exists "team_practice_seating_charts_update_uploaders" on public.team_practice_seating_charts;
+
+create policy "team_practice_seating_charts_select_authorized" on public.team_practice_seating_charts
+for select using (public.can_access_team(team_id));
+
+create policy "team_practice_seating_charts_insert_uploaders" on public.team_practice_seating_charts
+for insert with check (public.can_upload_team_documents(team_id));
+
+create policy "team_practice_seating_charts_update_uploaders" on public.team_practice_seating_charts
 for update using (public.can_upload_team_documents(team_id))
 with check (public.can_upload_team_documents(team_id));
 
