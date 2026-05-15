@@ -124,7 +124,7 @@ function SignUpForm() {
   }
 
   return (
-    <AuthShell title="Create account" body="Create a team contact account for PaddlePass. Admins still control team access.">
+    <AuthShell title="Create account" body="Create a team contact account for PaddlePass.">
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Full name</span>
