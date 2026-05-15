@@ -81,6 +81,17 @@ export async function getPracticeSlotCapacities() {
   return (data ?? []) as PracticeSlotCapacity[];
 }
 
+export function isMissingPracticeSchemaError(error: unknown) {
+  const candidate = error as { code?: string; message?: string };
+  return (
+    candidate?.code === "42P01" ||
+    candidate?.code === "PGRST205" ||
+    Boolean(candidate?.message?.includes("practice_slot_capacities")) ||
+    Boolean(candidate?.message?.includes("team_practice_assignments")) ||
+    Boolean(candidate?.message?.includes("team_practice_attendance"))
+  );
+}
+
 export async function getPracticeAssignmentsForTeams(teamIds: string[]) {
   if (teamIds.length === 0) return [] as TeamPracticeAssignment[];
 

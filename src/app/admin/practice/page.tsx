@@ -6,6 +6,7 @@ import {
   formatPracticeWeekLabel,
   getPracticeSlotInputName,
   getPracticeWeekStart,
+  isMissingPracticeSchemaError,
   normalizePracticeSlot,
   toDateOnly,
 } from "@/lib/practice";
@@ -26,25 +27,25 @@ export default async function AdminPracticePage({
   const admin = createSupabaseAdminClient();
   const currentWeekStart = toDateOnly(getPracticeWeekStart());
 
-  const [
-    { data: capacities, error: capacityError },
-    { data: teams, error: teamError },
-    { data: assignments, error: assignmentError },
-    { data: attendance, error: attendanceError },
-  ] = await Promise.all([
+  const [capacitiesResult, teamsResult, assignmentsResult, attendanceResult] = await Promise.all([
     admin.from("practice_slot_capacities").select("*").order("slot_start_time", { ascending: true }),
     admin.from("teams").select("*, race_categories(*)").order("name", { ascending: true }),
     admin.from("team_practice_assignments").select("*"),
     admin.from("team_practice_attendance").select("*").eq("practice_week_start", currentWeekStart),
   ]);
 
-  if (capacityError || teamError || assignmentError || attendanceError) {
-    throw capacityError ?? teamError ?? assignmentError ?? attendanceError;
+  const practiceError = capacitiesResult.error ?? assignmentsResult.error ?? attendanceResult.error;
+  if (practiceError) {
+    if (isMissingPracticeSchemaError(practiceError)) {
+      return <PracticeSetupNotice />;
+    }
+    throw practiceError;
   }
+  if (teamsResult.error) throw teamsResult.error;
 
-  const capacityRows = (capacities ?? []) as PracticeSlotCapacity[];
-  const assignmentRows = (assignments ?? []) as TeamPracticeAssignment[];
-  const attendanceRows = (attendance ?? []) as TeamPracticeAttendance[];
+  const capacityRows = (capacitiesResult.data ?? []) as PracticeSlotCapacity[];
+  const assignmentRows = (assignmentsResult.data ?? []) as TeamPracticeAssignment[];
+  const attendanceRows = (attendanceResult.data ?? []) as TeamPracticeAttendance[];
   const capacityBySlot = new Map(capacityRows.map((row) => [normalizePracticeSlot(row.slot_start_time), row]));
   const assignmentByTeam = new Map(assignmentRows.map((row) => [row.team_id, row]));
   const attendanceByTeam = new Map(attendanceRows.map((row) => [row.team_id, row]));
@@ -119,7 +120,7 @@ export default async function AdminPracticePage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {(teams ?? []).map((team) => {
+                  {(teamsResult.data ?? []).map((team) => {
                     const assignment = assignmentByTeam.get(team.id);
                     const attendanceRow = attendanceByTeam.get(team.id);
                     const formId = `practice-assignment-${team.id}`;
@@ -169,7 +170,7 @@ export default async function AdminPracticePage({
                 </tbody>
               </table>
             </div>
-            {(teams ?? []).map((team) => (
+            {(teamsResult.data ?? []).map((team) => (
               <form
                 key={team.id}
                 id={`practice-assignment-${team.id}`}
@@ -198,6 +199,23 @@ export default async function AdminPracticePage({
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function PracticeSetupNotice() {
+  return (
+    <section className="space-y-6">
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <div className="flex items-center gap-2 text-amber-800">
+          <CalendarDays size={18} />
+          <p className="text-sm font-semibold uppercase tracking-wider">Back office</p>
+        </div>
+        <h1 className="mt-2 text-3xl font-bold text-amber-950">Practice scheduling is not ready yet</h1>
+        <p className="mt-2 max-w-2xl text-amber-900">
+          Apply the latest Supabase schema first. The practice tables are not present in the database yet, so capacity and assignments cannot be managed safely.
+        </p>
       </div>
     </section>
   );

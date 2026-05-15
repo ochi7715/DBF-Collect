@@ -6,6 +6,7 @@ import {
   getPracticeAssignmentsForTeams,
   getPracticeAttendanceForTeams,
   getUpcomingPracticeWeeks,
+  isMissingPracticeSchemaError,
   toDateOnly,
 } from "@/lib/practice";
 import { getAccessibleTeams } from "@/lib/teams";
@@ -16,10 +17,20 @@ export default async function PracticeSchedulePage() {
   const teamIds = teams.map((team) => team.id);
   const weeks = getUpcomingPracticeWeeks();
   const weekStarts = weeks.map(toDateOnly);
-  const [assignments, attendance] = await Promise.all([
-    getPracticeAssignmentsForTeams(teamIds),
-    getPracticeAttendanceForTeams(teamIds, weekStarts),
-  ]);
+  let assignments = [];
+  let attendance = [];
+
+  try {
+    [assignments, attendance] = await Promise.all([
+      getPracticeAssignmentsForTeams(teamIds),
+      getPracticeAttendanceForTeams(teamIds, weekStarts),
+    ]);
+  } catch (error) {
+    if (isMissingPracticeSchemaError(error)) {
+      return <PracticeSetupNotice />;
+    }
+    throw error;
+  }
 
   const assignmentByTeam = new Map(assignments.map((assignment) => [assignment.team_id, assignment]));
   const attendanceByTeamWeek = new Map(
@@ -110,6 +121,23 @@ export default async function PracticeSchedulePage() {
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+function PracticeSetupNotice() {
+  return (
+    <section className="space-y-6">
+      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <div className="flex items-center gap-2 text-amber-800">
+          <CalendarDays size={18} />
+          <p className="text-sm font-semibold uppercase tracking-wider">Practice schedule</p>
+        </div>
+        <h1 className="mt-2 text-3xl font-bold text-amber-950">Practice scheduling is not ready yet</h1>
+        <p className="mt-2 max-w-2xl text-amber-900">
+          The practice tables have not been added to the database yet. An admin needs to apply the latest Supabase schema before weekly practice scheduling can be used.
+        </p>
+      </div>
     </section>
   );
 }
