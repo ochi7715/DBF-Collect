@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { IntakeTemplate } from "@/lib/types";
+import type { DocumentForm } from "@/lib/types";
+import { formatBytes } from "@/lib/utils";
 
-export default async function AdminTemplatesPage({
+export default async function AdminFormsPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
@@ -11,20 +13,20 @@ export default async function AdminTemplatesPage({
   const { status } = await searchParams;
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
-    .from("intake_document_templates")
+    .from("document_forms")
     .select("*")
     .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
+    .order("code", { ascending: true });
 
   if (error) throw error;
-  const templates = (data ?? []) as IntakeTemplate[];
+  const forms = (data ?? []) as DocumentForm[];
 
   return (
     <section className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950">Checklist setup</h1>
-        <p className="mt-2 text-slate-600">Manage intake checklist items, upload requirements, and Dropbox Sign template IDs.</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950">Form setup</h1>
+        <p className="mt-2 text-slate-600">Maintain Form A1, A2, B1, B2, C, and D labels, blank form files, upload requirements, and Dropbox Sign template IDs.</p>
       </div>
 
       {status ? (
@@ -33,44 +35,62 @@ export default async function AdminTemplatesPage({
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <form action="/api/admin/templates" method="post" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-950">New checklist item</h2>
-          <TemplateFields submitLabel="Create item" />
-        </form>
-
-        <div className="grid gap-4">
-          {templates.map((template) => (
-            <article key={template.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-950">{template.name}</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {template.is_active ? "Active" : "Inactive"} | Sort {template.sort_order}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button form={`template-${template.id}`} className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                    Save item
-                  </button>
-                  <form action={`/api/admin/templates/${template.id}/delete`} method="post">
-                    <button className="focus-ring rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
-                      Delete
-                    </button>
-                  </form>
-                </div>
+      <div className="grid gap-4">
+        {forms.map((form) => (
+          <article key={form.code} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Form {form.code}</p>
+                <h2 className="text-lg font-bold text-slate-950">{form.name}</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {form.scope === "member" ? "Team member form" : "Team-level form"} | {form.is_active ? "Active" : "Inactive"} | Sort {form.sort_order}
+                </p>
               </div>
-              <form id={`template-${template.id}`} action={`/api/admin/templates/${template.id}`} method="post">
-                <TemplateFields template={template} submitLabel="Save item" hideSubmit />
-              </form>
-            </article>
-          ))}
-          {templates.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-              No checklist templates yet.
+              <button form={`form-${form.code}`} className="focus-ring rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Save form
+              </button>
             </div>
-          ) : null}
-        </div>
+            <form id={`form-${form.code}`} action={`/api/admin/templates/${form.code}`} method="post">
+              <FormFields form={form} />
+            </form>
+            <form action={`/api/admin/forms/${form.code}/template`} method="post" encType="multipart/form-data" className="mt-5 rounded-2xl border border-slate-200 p-4">
+              <div className="grid gap-4 lg:grid-cols-[1fr_320px_auto] lg:items-end">
+                <div>
+                  <h3 className="font-semibold text-slate-950">Blank form file</h3>
+                  {form.template_file_path ? (
+                    <p className="mt-1 text-sm text-slate-600">
+                      Current:{" "}
+                      <Link href={`/api/forms/${form.code}/template`} className="font-semibold text-brand-600 hover:text-brand-700">
+                        {form.template_file_name ?? `Form ${form.code}`}
+                      </Link>
+                      {form.template_file_size_bytes ? ` | ${formatBytes(form.template_file_size_bytes)}` : ""}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-amber-700">No blank form has been uploaded yet.</p>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Replacement file</span>
+                  <input
+                    name="template"
+                    type="file"
+                    required
+                    accept=".pdf,.doc,.docx"
+                    className="mt-1 block w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
+                  />
+                </label>
+                <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+                  Upload new file
+                </button>
+              </div>
+            </form>
+          </article>
+        ))}
+        {forms.length === 0 ? (
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+            No document forms have been seeded yet. Run `supabase/seed.sql`.
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -78,67 +98,65 @@ export default async function AdminTemplatesPage({
 
 function getStatusCopy(status: string) {
   switch (status) {
-    case "created":
-      return "Checklist item created and synced to existing child records.";
-    case "deleted":
-      return "Checklist item deleted.";
-    case "deactivated":
-      return "Checklist item already had child records, so it was deactivated instead of deleted.";
     case "updated":
-      return "Checklist item updated.";
+      return "Document form updated.";
+    case "template-updated":
+      return "Blank form file uploaded.";
+    case "template-missing":
+      return "Choose a replacement file before uploading.";
+    case "template-too-large":
+      return "Blank form files must be 10 MB or smaller.";
+    case "template-type":
+      return "Blank form files must be PDF, DOC, or DOCX.";
     default:
-      return "Checklist setup saved.";
+      return "Form setup saved.";
   }
 }
 
-function TemplateFields({
-  template,
-  submitLabel,
-  hideSubmit = false,
-}: {
-  template?: IntakeTemplate;
-  submitLabel: string;
-  hideSubmit?: boolean;
-}) {
+function FormFields({ form }: { form: DocumentForm }) {
   return (
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      <label className="block md:col-span-2">
-        <span className="text-sm font-medium text-slate-700">Name</span>
-        <input name="name" required defaultValue={template?.name ?? ""} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-      </label>
-      <label className="block md:col-span-2">
-        <span className="text-sm font-medium text-slate-700">Description</span>
-        <textarea name="description" defaultValue={template?.description ?? ""} className="focus-ring mt-1 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2" />
+    <div className="grid gap-4 md:grid-cols-2">
+      <label className="block">
+        <span className="text-sm font-medium text-slate-700">Code</span>
+        <input name="code" readOnly value={form.code} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500" />
       </label>
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Sort order</span>
-        <input name="sortOrder" type="number" min="0" max="9999" defaultValue={template?.sort_order ?? 10} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+        <input name="sortOrder" type="number" min="0" max="9999" defaultValue={form.sort_order} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+      </label>
+      <label className="block md:col-span-2">
+        <span className="text-sm font-medium text-slate-700">Name</span>
+        <input name="name" required defaultValue={form.name} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+      </label>
+      <label className="block md:col-span-2">
+        <span className="text-sm font-medium text-slate-700">Description</span>
+        <textarea name="description" defaultValue={form.description ?? ""} className="focus-ring mt-1 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2" />
       </label>
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Dropbox template ID</span>
-        <input name="dropboxTemplateId" defaultValue={template?.dropbox_template_id ?? ""} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+        <input name="dropboxTemplateId" defaultValue={form.dropbox_template_id ?? ""} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
+      </label>
+      <label className="block">
+        <span className="text-sm font-medium text-slate-700">Scope</span>
+        <select name="scope" defaultValue={form.scope} className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+          <option value="team">Team-level</option>
+          <option value="member">Team member</option>
+        </select>
       </label>
       <div className="grid gap-2 text-sm text-slate-700 md:col-span-2 md:grid-cols-3">
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="requiresUpload" defaultChecked={template?.requires_upload ?? true} className="size-4 rounded border-slate-300 text-brand-600" />
+          <input type="checkbox" name="requiresUpload" defaultChecked={form.requires_upload} className="size-4 rounded border-slate-300 text-brand-600" />
           Requires upload
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="requiresSignature" defaultChecked={template?.requires_signature ?? false} className="size-4 rounded border-slate-300 text-brand-600" />
+          <input type="checkbox" name="requiresSignature" defaultChecked={form.requires_signature} className="size-4 rounded border-slate-300 text-brand-600" />
           Requires signature
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="isActive" defaultChecked={template?.is_active ?? true} className="size-4 rounded border-slate-300 text-brand-600" />
+          <input type="checkbox" name="isActive" defaultChecked={form.is_active} className="size-4 rounded border-slate-300 text-brand-600" />
           Active
         </label>
       </div>
-      {!hideSubmit ? (
-        <div className="md:col-span-2">
-          <button className="focus-ring w-full rounded-xl bg-brand-600 px-4 py-2.5 font-semibold text-white hover:bg-brand-700">
-            {submitLabel}
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -36,28 +36,28 @@ export async function POST(request: NextRequest) {
   if (!ALLOWED_TYPES.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
 
   const { data: doc, error: docError } = await supabase
-    .from("child_intake_documents")
-    .select("id, child_id, template_id, intake_document_templates(requires_upload)")
+    .from("dragon_boat_documents")
+    .select("id, team_id, form_code, document_forms(requires_upload)")
     .eq("id", parsed.data.documentId)
     .single();
 
   if (docError || !doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-  const template = Array.isArray(doc.intake_document_templates) ? doc.intake_document_templates[0] : doc.intake_document_templates;
-  if (!template?.requires_upload) {
-    return NextResponse.json({ error: "This checklist item does not accept uploads" }, { status: 400 });
+  const form = Array.isArray(doc.document_forms) ? doc.document_forms[0] : doc.document_forms;
+  if (!form?.requires_upload) {
+    return NextResponse.json({ error: "This form does not accept uploads" }, { status: 400 });
   }
 
-  const { data: allowed, error: allowedError } = await supabase.rpc("can_upload_child_documents", { target_child_id: doc.child_id });
+  const { data: allowed, error: allowedError } = await supabase.rpc("can_upload_team_documents", { target_team_id: doc.team_id });
   if (allowedError || !allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "bin";
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${doc.child_id}/${parsed.data.documentId}-${Date.now()}.${extension}`;
+  const path = `${doc.team_id}/${parsed.data.documentId}-${Date.now()}.${extension}`;
   const arrayBuffer = await file.arrayBuffer();
 
   const { error: uploadError } = await admin.storage
-    .from("intake-documents")
+    .from("race-documents")
     .upload(path, Buffer.from(arrayBuffer), {
       contentType: file.type,
       upsert: true,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
   const { error: updateError } = await admin
-    .from("child_intake_documents")
+    .from("dragon_boat_documents")
     .update({
       status: "uploaded",
       uploaded_by: user.id,
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
 
   await writeAuditLog({
     actorId: user.id,
-    childId: doc.child_id,
-    entityType: "child_intake_document",
+    teamId: doc.team_id,
+    entityType: "dragon_boat_document",
     entityId: parsed.data.documentId,
     action: "document_uploaded",
-    details: { fileName: safeName, fileSize: file.size, mimeType: file.type },
+    details: { formCode: doc.form_code, fileName: safeName, fileSize: file.size, mimeType: file.type },
     request,
   });
 

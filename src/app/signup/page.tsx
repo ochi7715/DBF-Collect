@@ -9,7 +9,7 @@ import { safeRedirect } from "@/lib/utils";
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={<AuthShell title="Create account" body="Create a caregiver account for ABS Connect." />}>
+    <Suspense fallback={<AuthShell title="Create account" body="Create a team contact account for Dragon Boat Docs." />}>
       <SignUpForm />
     </Suspense>
   );
@@ -123,7 +123,7 @@ function SignUpForm() {
   }
 
   return (
-    <AuthShell title="Create account" body="Create a caregiver account for ABS Connect. Staff still controls child record access.">
+    <AuthShell title="Create account" body="Create a team contact account for Dragon Boat Docs. Admins still control team access.">
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
           <span className="text-sm font-medium text-slate-700">Full name</span>
@@ -196,7 +196,7 @@ function AuthShell({ title, body, children }: { title: string; body: string; chi
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8">
           <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">
-            ABS Connect
+            Dragon Boat Docs
           </Link>
           <h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1>
           <p className="mt-2 text-sm text-slate-600">{body}</p>

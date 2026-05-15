@@ -19,10 +19,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
   });
 
   const admin = createSupabaseAdminClient();
-  const { data: doc } = await admin.from("child_intake_documents").select("child_id").eq("id", documentId).single();
+  const { data: doc } = await admin.from("dragon_boat_documents").select("team_id").eq("id", documentId).single();
 
   const { error } = await admin
-    .from("child_intake_documents")
+    .from("dragon_boat_documents")
     .update({
       status: parsed.status,
       reviewed_by: profile.id,
@@ -35,8 +35,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ doc
 
   await writeAuditLog({
     actorId: profile.id,
-    childId: doc?.child_id,
-    entityType: "child_intake_document",
+    teamId: doc?.team_id,
+    entityType: "dragon_boat_document",
     entityId: documentId,
     action: "document_reviewed",
     details: parsed,

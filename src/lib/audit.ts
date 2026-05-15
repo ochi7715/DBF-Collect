@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { Child, Profile } from "@/lib/types";
+import type { Profile, Team } from "@/lib/types";
 
 type AuditInput = {
   actorId?: string | null;
-  childId?: string | null;
+  teamId?: string | null;
   entityType: string;
   entityId?: string | null;
   action: string;
@@ -15,7 +15,7 @@ type AuditInput = {
 export type AuditLog = {
   id: string;
   actor_id: string | null;
-  child_id: string | null;
+  team_id: string | null;
   entity_type: string;
   entity_id: string | null;
   action: string;
@@ -26,13 +26,13 @@ export type AuditLog = {
   user_agent: string | null;
   created_at: string;
   profiles?: Pick<Profile, "id" | "email" | "full_name" | "role"> | null;
-  children?: Pick<Child, "id" | "first_name" | "last_name" | "external_patient_id"> | null;
+  teams?: Pick<Team, "id" | "name" | "status"> | null;
 };
 
 type AuditLogFilters = {
   action?: string;
   entityType?: string;
-  childId?: string;
+  teamId?: string;
   actorId?: string;
   limit?: number;
 };
@@ -52,7 +52,7 @@ export async function writeAuditLog(input: AuditInput) {
 
     const { error } = await supabase.from("audit_logs").insert({
       actor_id: input.actorId ?? null,
-      child_id: input.childId ?? null,
+      team_id: input.teamId ?? null,
       entity_type: input.entityType,
       entity_id: input.entityId ?? null,
       action: input.action,
@@ -75,13 +75,13 @@ export async function getAuditLogs(filters: AuditLogFilters = {}) {
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("audit_logs")
-    .select("*, profiles:actor_id(id, email, full_name, role), children(id, first_name, last_name, external_patient_id)")
+    .select("*, profiles:actor_id(id, email, full_name, role), teams(id, name, status)")
     .order("created_at", { ascending: false })
     .limit(Math.min(filters.limit ?? 100, 250));
 
   if (filters.action) query = query.eq("action", filters.action);
   if (filters.entityType) query = query.eq("entity_type", filters.entityType);
-  if (filters.childId) query = query.eq("child_id", filters.childId);
+  if (filters.teamId) query = query.eq("team_id", filters.teamId);
   if (filters.actorId) query = query.eq("actor_id", filters.actorId);
 
   const { data, error } = await query;

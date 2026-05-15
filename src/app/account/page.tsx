@@ -55,7 +55,7 @@ export default async function AccountPage({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-950">Profile details</h2>
-              <p className="text-sm text-slate-600">Your name is shown to staff and caregivers.</p>
+              <p className="text-sm text-slate-600">Your name is shown to admins and team contacts.</p>
             </div>
           </div>
 

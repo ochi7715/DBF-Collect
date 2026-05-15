@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
-import { ensureTemplateForExistingChildren } from "@/lib/documents";
+import { ensureMemberFormCForAllMembers, ensureTeamDocumentRequirementsForAllTeams } from "@/lib/documents";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-const templateSchema = z.object({
+const formSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1000).optional(),
+  scope: z.enum(["team", "member"]),
   sortOrder: z.coerce.number().int().min(0).max(9999),
   dropboxTemplateId: z.string().trim().max(200).optional(),
   requiresUpload: z.boolean(),
@@ -19,9 +20,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
   const { templateId } = await params;
   const actor = await requireStaff();
   const formData = await request.formData();
-  const parsed = templateSchema.parse({
+  const parsed = formSchema.parse({
     name: formData.get("name"),
     description: formData.get("description")?.toString() ?? "",
+    scope: formData.get("scope")?.toString() ?? "team",
     sortOrder: formData.get("sortOrder")?.toString() ?? "10",
     dropboxTemplateId: formData.get("dropboxTemplateId")?.toString() ?? "",
     requiresUpload: formData.has("requiresUpload"),
@@ -30,48 +32,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ tem
   });
 
   const admin = createSupabaseAdminClient();
-  const { data: before, error: beforeError } = await admin
-    .from("intake_document_templates")
-    .select("*")
-    .eq("id", templateId)
-    .single();
-
-  if (beforeError || !before) throw beforeError ?? new Error("Template not found");
-
   const { error } = await admin
-    .from("intake_document_templates")
+    .from("document_forms")
     .update({
       name: parsed.name,
       description: parsed.description || null,
+      scope: parsed.scope,
       sort_order: parsed.sortOrder,
       dropbox_template_id: parsed.dropboxTemplateId || null,
       requires_upload: parsed.requiresUpload,
       requires_signature: parsed.requiresSignature,
       is_active: parsed.isActive,
     })
-    .eq("id", templateId);
+    .eq("code", templateId);
 
   if (error) throw error;
 
-  if (parsed.isActive) {
-    await ensureTemplateForExistingChildren(templateId);
+  if (templateId === "C") {
+    await ensureMemberFormCForAllMembers();
+  } else {
+    await ensureTeamDocumentRequirementsForAllTeams();
   }
 
   await writeAuditLog({
     actorId: actor.id,
-    entityType: "intake_document_template",
-    entityId: templateId,
-    action: "intake_template_updated",
+    entityType: "document_form",
+    action: "document_form_updated",
     details: {
-      before: {
-        name: before.name,
-        requiresUpload: before.requires_upload,
-        requiresSignature: before.requires_signature,
-        isActive: before.is_active,
-        dropboxTemplateId: before.dropbox_template_id,
-        sortOrder: before.sort_order,
-      },
-      after: parsed,
+      code: templateId,
+      ...parsed,
     },
     request,
   });

@@ -50,7 +50,7 @@ async function createMissingProfile(user: User): Promise<Profile> {
     id: user.id,
     email: user.email ?? "",
     full_name: user.user_metadata?.full_name ?? null,
-    role: "caregiver" as UserRole,
+    role: "team_contact" as UserRole,
     is_active: true,
   };
 

@@ -7,7 +7,7 @@ import { safeRedirect } from "@/lib/utils";
 
 const updateUserSchema = z.object({
   fullName: z.string().trim().max(160).optional(),
-  role: z.enum(["caregiver", "staff", "admin"]),
+  role: z.enum(["team_contact", "staff", "admin"]),
   isActive: z.boolean(),
   returnTo: z.string().optional(),
 });
@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ pro
   const formData = await request.formData();
   const parsed = updateUserSchema.parse({
     fullName: formData.get("fullName")?.toString() ?? "",
-    role: formData.get("role")?.toString() ?? "caregiver",
+    role: formData.get("role")?.toString() ?? "team_contact",
     isActive: formData.has("isActive"),
     returnTo: formData.get("returnTo")?.toString() ?? "/admin/users",
   });

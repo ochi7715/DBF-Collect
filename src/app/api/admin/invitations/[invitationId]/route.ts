@@ -12,33 +12,33 @@ const invitationActionSchema = z.object({
 
 export async function POST(request: Request, { params }: { params: Promise<{ invitationId: string }> }) {
   const { invitationId } = await params;
-  const profile = await requireStaff();
+  const actor = await requireStaff();
   const formData = await request.formData();
   const parsed = invitationActionSchema.parse({
     action: formData.get("action"),
-    returnTo: formData.get("returnTo")?.toString() ?? "/admin/caregivers",
+    returnTo: formData.get("returnTo")?.toString() ?? "/admin/team-contacts",
   });
 
   const admin = createSupabaseAdminClient();
   const { data: invitation, error } = await admin
-    .from("caregiver_invitations")
+    .from("team_invitations")
     .update({ status: "revoked" })
     .eq("id", invitationId)
     .eq("status", "pending")
-    .select("id, child_id, email")
+    .select("id, team_id, email")
     .single();
 
   if (error) throw error;
 
   await writeAuditLog({
-    actorId: profile.id,
-    childId: invitation.child_id,
-    entityType: "caregiver_invitation",
+    actorId: actor.id,
+    teamId: invitation.team_id,
+    entityType: "team_invitation",
     entityId: invitation.id,
-    action: "caregiver_invitation_revoked",
-    details: { email: invitation.email },
+    action: "team_invitation_revoked",
+    details: { email: invitation.email, action: parsed.action },
     request,
   });
 
-  redirect(safeRedirect(parsed.returnTo, "/admin/caregivers"));
+  redirect(safeRedirect(parsed.returnTo, "/admin/team-contacts"));
 }

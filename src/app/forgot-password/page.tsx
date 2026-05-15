@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8">
           <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">
-            ABS Connect
+            Dragon Boat Docs
           </Link>
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Reset password</h1>
           <p className="mt-2 text-sm text-slate-600">Enter your email and we will send a secure link to set a new password.</p>

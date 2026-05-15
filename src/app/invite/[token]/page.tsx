@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
+import { getContactRoleLabel } from "@/lib/dragon-boat";
 import { getInvitationByToken, isInvitationExpired, normalizeEmail } from "@/lib/invitations";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
@@ -9,9 +10,10 @@ const errorCopy: Record<string, string> = {
   missing: "This invitation could not be found.",
   accepted: "This invitation has already been accepted.",
   expired: "This invitation has expired.",
-  revoked: "This invitation was revoked by staff.",
+  revoked: "This invitation was revoked by an admin.",
   email: "You are signed in with a different email address than the one invited.",
-  inactive: "This account is inactive. Please contact staff for help.",
+  inactive: "This account is inactive. Please contact an admin for help.",
+  role: "That team role is already assigned. Please contact an admin for help.",
 };
 
 export default async function InvitationPage({
@@ -38,7 +40,7 @@ export default async function InvitationPage({
     user?.email &&
     normalizeEmail(user.email) === normalizeEmail(invitation.email);
   const loginHref = `/login?redirectedFrom=${encodeURIComponent(`/invite/${token}`)}`;
-  const child = invitation.children;
+  const team = invitation.teams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
@@ -48,18 +50,18 @@ export default async function InvitationPage({
             <ShieldCheck size={26} />
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">ABS Connect invitation</p>
-            <h1 className="mt-2 text-3xl font-bold text-slate-950">Connect to a child record</h1>
+            <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Team portal invitation</p>
+            <h1 className="mt-2 text-3xl font-bold text-slate-950">Connect to a team</h1>
             <p className="mt-2 text-slate-600">
-              Staff invited {invitation.email} to access intake documents
-              {child ? ` for ${child.first_name} ${child.last_name}` : ""}.
+              An admin invited {invitation.email} to access race documents
+              {team ? ` for ${team.name}` : ""}.
             </p>
           </div>
         </div>
 
         <div className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2">
           <p>
-            <span className="font-semibold text-slate-900">Relationship:</span> {invitation.relationship ?? "Caregiver"}
+            <span className="font-semibold text-slate-900">Portal role:</span> {getContactRoleLabel(invitation.contact_role)}
           </p>
           <p>
             <span className="font-semibold text-slate-900">Expires:</span> {formatDate(invitation.expires_at)}

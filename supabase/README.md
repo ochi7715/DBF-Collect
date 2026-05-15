@@ -1,24 +1,23 @@
-# Supabase setup
+# Supabase Setup
 
-Run `schema.sql` first, then `seed.sql`.
+Run these files in order:
+
+1. `schema.sql`
+2. `seed.sql`
 
 The schema creates:
 
-- Roles: caregiver, staff, admin
-- Profiles linked to Supabase Auth users
-- Children
-- Child-caregiver relationships
-- Caregiver invitations
-- Intake document templates
-- Child intake document checklist records
-- Audit logs
-- Private `intake-documents` storage bucket
-- RLS policies for caregiver/staff access
+- Roles: team contact, staff, admin
+- Race categories and category rule sets
+- Teams
+- Team contact roles: captain, manager, co-captain
+- Team contact invitations
+- Team members
+- Document forms: A1, A2, B1, B2, C, D
+- Team-level and member-level document tracking
+- Private `race-documents` storage bucket
+- Private `form-templates` storage bucket for admin-uploaded blank form replacements
+- RLS policies for team contact and admin access
+- Audit logging
 
-After creating the first Supabase Auth user, run:
-
-```sql
-select public.promote_user_to_admin('admin@example.com');
-```
-
-Then sign in with that user and use the admin pages.
+The seed file creates the default Regular, USDBOC, and Invitational categories plus starter form labels.

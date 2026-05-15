@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { CaregiverInvitation } from "@/lib/types";
+import type { TeamInvitation } from "@/lib/types";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -23,15 +23,15 @@ export function buildInvitationUrl(baseUrl: string, token: string) {
 export async function getInvitationByToken(token: string) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
-    .from("caregiver_invitations")
-    .select("*, children(*)")
+    .from("team_invitations")
+    .select("*, teams(*, race_categories(*))")
     .eq("token", token)
     .maybeSingle();
 
   if (error) throw error;
-  return data as CaregiverInvitation | null;
+  return data as TeamInvitation | null;
 }
 
-export function isInvitationExpired(invitation: Pick<CaregiverInvitation, "expires_at">) {
+export function isInvitationExpired(invitation: Pick<TeamInvitation, "expires_at">) {
   return new Date(invitation.expires_at).getTime() < Date.now();
 }

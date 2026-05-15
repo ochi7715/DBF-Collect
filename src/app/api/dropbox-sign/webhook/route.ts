@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   const signatureRequestId = payload.signature_request.signature_request_id;
   const admin = createSupabaseAdminClient();
   const { data: doc } = await admin
-    .from("child_intake_documents")
-    .select("id, child_id, signed_file_path")
+    .from("dragon_boat_documents")
+    .select("id, team_id, signed_file_path")
     .eq("dropbox_signature_request_id", signatureRequestId)
     .maybeSingle();
 
@@ -29,8 +29,8 @@ export async function POST(request: Request) {
   if (isComplete) {
     try {
       const file = await getDropboxSignedFile(signatureRequestId);
-      signedFilePath = `${doc.child_id}/signed-${doc.id}-${Date.now()}.pdf`;
-      await admin.storage.from("intake-documents").upload(signedFilePath, Buffer.from(file), {
+      signedFilePath = `${doc.team_id}/signed-${doc.id}-${Date.now()}.pdf`;
+      await admin.storage.from("race-documents").upload(signedFilePath, Buffer.from(file), {
         contentType: "application/pdf",
         upsert: true,
       });
@@ -48,13 +48,13 @@ export async function POST(request: Request) {
   if (signedFilePath) update.signed_file_path = signedFilePath;
 
   await admin
-    .from("child_intake_documents")
+    .from("dragon_boat_documents")
     .update(update)
     .eq("id", doc.id);
 
   await writeAuditLog({
-    childId: doc.child_id,
-    entityType: "child_intake_document",
+    teamId: doc.team_id,
+    entityType: "dragon_boat_document",
     entityId: doc.id,
     action: "dropbox_webhook_received",
     details: { signatureRequestId, eventType, signerStatus, completed: isComplete },

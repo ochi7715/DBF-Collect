@@ -19,13 +19,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const admin = createSupabaseAdminClient();
   if (isInvitationExpired(invitation)) {
-    await admin.from("caregiver_invitations").update({ status: "expired" }).eq("id", invitation.id);
+    await admin.from("team_invitations").update({ status: "expired" }).eq("id", invitation.id);
     await writeAuditLog({
       actorId: user.id,
-      childId: invitation.child_id,
-      entityType: "caregiver_invitation",
+      teamId: invitation.team_id,
+      entityType: "team_invitation",
       entityId: invitation.id,
-      action: "caregiver_invitation_expired",
+      action: "team_invitation_expired",
       details: { email: invitation.email },
       request,
     });
@@ -49,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       .update({
         email: userEmail,
         full_name: user.user_metadata?.full_name ?? existingProfile.full_name,
+        role: existingProfile.role === "staff" || existingProfile.role === "admin" ? existingProfile.role : "team_contact",
       })
       .eq("id", user.id);
     if (profileError) throw profileError;
@@ -57,27 +58,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       id: user.id,
       email: userEmail,
       full_name: user.user_metadata?.full_name ?? null,
-      role: "caregiver",
+      role: "team_contact",
       is_active: true,
     });
     if (profileError) throw profileError;
   }
 
-  const { error: relationshipError } = await admin.from("child_caregivers").upsert(
+  const { error: relationshipError } = await admin.from("team_contacts").upsert(
     {
-      child_id: invitation.child_id,
-      caregiver_id: user.id,
-      relationship: invitation.relationship,
+      team_id: invitation.team_id,
+      profile_id: user.id,
+      contact_role: invitation.contact_role,
       is_authorized: true,
       can_view_documents: invitation.can_view_documents,
       can_upload_documents: invitation.can_upload_documents,
     },
-    { onConflict: "child_id,caregiver_id" }
+    { onConflict: "team_id,profile_id" }
   );
-  if (relationshipError) throw relationshipError;
+  if (relationshipError) {
+    redirect(`/invite/${token}?error=role`);
+  }
 
   const { error: invitationError } = await admin
-    .from("caregiver_invitations")
+    .from("team_invitations")
     .update({
       status: "accepted",
       accepted_by: user.id,
@@ -88,13 +91,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   await writeAuditLog({
     actorId: user.id,
-    childId: invitation.child_id,
-    entityType: "caregiver_invitation",
+    teamId: invitation.team_id,
+    entityType: "team_invitation",
     entityId: invitation.id,
-    action: "caregiver_invitation_accepted",
-    details: { email: userEmail },
+    action: "team_invitation_accepted",
+    details: { email: userEmail, contactRole: invitation.contact_role },
     request,
   });
 
-  redirect(`/portal/children/${invitation.child_id}/documents`);
+  redirect(`/portal/teams/${invitation.team_id}/documents`);
 }

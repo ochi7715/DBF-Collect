@@ -1,4 +1,12 @@
-export type UserRole = "caregiver" | "staff" | "admin";
+export type UserRole = "team_contact" | "staff" | "admin";
+
+export type TeamContactRole = "captain" | "manager" | "co_captain";
+
+export type RaceCategoryRule = "regular" | "usdboc" | "invitational";
+
+export type DocumentScope = "team" | "member";
+
+export type DocumentFormCode = "A1" | "A2" | "B1" | "B2" | "C" | "D";
 
 export type DocumentStatus =
   | "not_started"
@@ -22,37 +30,47 @@ export type Profile = {
   updated_at: string;
 };
 
-export type Child = {
+export type RaceCategory = {
   id: string;
-  first_name: string;
-  last_name: string;
-  date_of_birth: string | null;
-  external_patient_id: string | null;
-  status: string;
+  name: string;
+  rule_set: RaceCategoryRule;
+  sort_order: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };
 
-export type ChildCaregiver = {
+export type Team = {
   id: string;
-  child_id: string;
-  caregiver_id: string;
-  relationship: string | null;
+  name: string;
+  race_category_id: string;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  race_categories?: RaceCategory | null;
+};
+
+export type TeamContact = {
+  id: string;
+  team_id: string;
+  profile_id: string;
+  contact_role: TeamContactRole;
   is_authorized: boolean;
   can_view_documents: boolean;
   can_upload_documents: boolean;
   created_at: string;
   profiles?: Profile | null;
-  children?: Child | null;
+  teams?: Team | null;
 };
 
 export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
 
-export type CaregiverInvitation = {
+export type TeamInvitation = {
   id: string;
   email: string;
-  child_id: string;
-  relationship: string | null;
+  team_id: string;
+  contact_role: TeamContactRole;
   invited_by: string | null;
   token: string;
   status: InvitationStatus;
@@ -62,25 +80,44 @@ export type CaregiverInvitation = {
   can_view_documents: boolean;
   can_upload_documents: boolean;
   created_at: string;
-  children?: Child | null;
+  teams?: Team | null;
   profiles?: Profile | null;
 };
 
-export type IntakeTemplate = {
+export type TeamMember = {
   id: string;
+  team_id: string;
+  full_name: string;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentForm = {
+  code: DocumentFormCode;
   name: string;
   description: string | null;
+  scope: DocumentScope;
   requires_upload: boolean;
   requires_signature: boolean;
   dropbox_template_id: string | null;
+  template_file_path: string | null;
+  template_file_name: string | null;
+  template_mime_type: string | null;
+  template_file_size_bytes: number | null;
   sort_order: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
-export type ChildIntakeDocument = {
+export type DragonBoatDocument = {
   id: string;
-  child_id: string;
-  template_id: string;
+  team_id: string;
+  team_member_id: string | null;
+  form_code: DocumentFormCode;
+  scope: DocumentScope;
   status: DocumentStatus;
   uploaded_by: string | null;
   reviewed_by: string | null;
@@ -94,18 +131,21 @@ export type ChildIntakeDocument = {
   signed_file_path: string | null;
   created_at: string;
   updated_at: string;
-  intake_document_templates?: IntakeTemplate;
-  children?: Child;
+  document_forms?: DocumentForm | null;
+  teams?: Team | null;
+  team_members?: TeamMember | null;
+  profiles?: Profile | null;
 };
 
-export type ChildWithCaregiverAccess = Child & {
-  relationship?: string | null;
+export type TeamWithContactAccess = Team & {
+  contact_role?: TeamContactRole | null;
   can_view_documents?: boolean;
   can_upload_documents?: boolean;
 };
 
-export type StaffDocumentInboxRow = ChildIntakeDocument & {
-  children: Child;
-  intake_document_templates: IntakeTemplate;
+export type StaffDocumentInboxRow = DragonBoatDocument & {
+  teams: Team;
+  document_forms: DocumentForm;
+  team_members?: TeamMember | null;
   profiles?: Profile | null;
 };

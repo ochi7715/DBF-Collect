@@ -14,20 +14,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: doc, error } = await supabase
-    .from("child_intake_documents")
-    .select("id, child_id, file_path, signed_file_path")
+    .from("dragon_boat_documents")
+    .select("id, team_id, file_path, signed_file_path")
     .eq("id", documentId)
     .single();
 
   if (error || !doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-  const { data: allowed } = await supabase.rpc("can_access_child", { target_child_id: doc.child_id });
+  const { data: allowed } = await supabase.rpc("can_access_team", { target_team_id: doc.team_id });
   const version = request.nextUrl.searchParams.get("version");
   if (!allowed) {
     await writeAuditLog({
       actorId: user.id,
-      childId: doc.child_id,
-      entityType: "child_intake_document",
+      teamId: doc.team_id,
+      entityType: "dragon_boat_document",
       entityId: documentId,
       action: "document_file_access_denied",
       details: { version },
@@ -39,13 +39,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const path = version === "uploaded" ? doc.file_path : version === "signed" ? doc.signed_file_path : doc.signed_file_path ?? doc.file_path;
   if (!path) return NextResponse.json({ error: "No file available" }, { status: 404 });
 
-  const { data, error: signedUrlError } = await admin.storage.from("intake-documents").createSignedUrl(path, 60);
+  const { data, error: signedUrlError } = await admin.storage.from("race-documents").createSignedUrl(path, 60);
   if (signedUrlError) return NextResponse.json({ error: signedUrlError.message }, { status: 500 });
 
   await writeAuditLog({
     actorId: user.id,
-    childId: doc.child_id,
-    entityType: "child_intake_document",
+    teamId: doc.team_id,
+    entityType: "dragon_boat_document",
     entityId: documentId,
     action: "document_file_opened",
     details: { version: version ?? "latest", fileVersion: path === doc.signed_file_path ? "signed" : "uploaded" },

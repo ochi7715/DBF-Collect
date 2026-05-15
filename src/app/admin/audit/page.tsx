@@ -4,23 +4,26 @@ import { getAuditLogs, type AuditLog } from "@/lib/audit";
 
 const ACTION_LABELS: Record<string, string> = {
   auth_callback_completed: "Email auth completed",
-  caregiver_access_updated: "Caregiver access updated",
-  caregiver_invitation_accepted: "Invitation accepted",
-  caregiver_invitation_expired: "Invitation expired",
-  caregiver_invitation_revoked: "Invitation revoked",
-  caregiver_invited: "Caregiver invited",
-  child_created: "Child created",
-  child_updated: "Child updated",
+  document_form_template_uploaded: "Blank form file uploaded",
+  document_form_updated: "Document form updated",
   document_file_access_denied: "Document file access denied",
   document_file_opened: "Document file opened",
   document_reviewed: "Document reviewed",
   document_uploaded: "Document uploaded",
   dropbox_signature_sent: "Dropbox Sign request sent",
   dropbox_webhook_received: "Dropbox Sign webhook received",
-  intake_template_created: "Checklist item created",
-  intake_template_deactivated: "Checklist item deactivated",
-  intake_template_deleted: "Checklist item deleted",
-  intake_template_updated: "Checklist item updated",
+  race_category_created: "Race category created",
+  race_category_deactivated: "Race category deactivated",
+  race_category_deleted: "Race category deleted",
+  race_category_updated: "Race category updated",
+  team_contact_access_updated: "Team contact access updated",
+  team_contact_invited: "Team contact invited",
+  team_created: "Team created",
+  team_invitation_accepted: "Invitation accepted",
+  team_invitation_expired: "Invitation expired",
+  team_invitation_revoked: "Invitation revoked",
+  team_member_created: "Team member created",
+  team_updated: "Team updated",
   user_access_updated: "User access updated",
   user_invited: "User invited",
   user_signed_out: "User signed out",
@@ -28,12 +31,14 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ENTITY_LABELS: Record<string, string> = {
   auth_session: "Auth session",
-  caregiver_invitation: "Caregiver invitation",
-  child: "Child",
-  child_caregiver: "Child caregiver",
-  child_intake_document: "Intake document",
-  intake_document_template: "Checklist template",
+  document_form: "Document form",
+  dragon_boat_document: "Race document",
   profile: "User profile",
+  race_category: "Race category",
+  team: "Team",
+  team_contact: "Team contact",
+  team_invitation: "Team invitation",
+  team_member: "Team member",
 };
 
 export default async function AdminAuditPage({
@@ -51,7 +56,7 @@ export default async function AdminAuditPage({
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Activity log</h1>
         <p className="mt-2 text-slate-600">
-          Review sensitive activity across child records, caregiver access, intake documents, and signatures.
+          Review sensitive activity across teams, contact access, uploaded forms, invitations, and signatures.
         </p>
       </div>
 
@@ -95,7 +100,7 @@ export default async function AdminAuditPage({
               <th className="px-4 py-3">When</th>
               <th className="px-4 py-3">Action</th>
               <th className="px-4 py-3">Actor</th>
-              <th className="px-4 py-3">Child</th>
+              <th className="px-4 py-3">Team</th>
               <th className="px-4 py-3">Request</th>
               <th className="px-4 py-3">Details</th>
             </tr>
@@ -119,7 +124,7 @@ export default async function AdminAuditPage({
 }
 
 function AuditRow({ log }: { log: AuditLog }) {
-  const child = log.children;
+  const team = log.teams;
   const actor = log.profiles;
 
   return (
@@ -128,7 +133,7 @@ function AuditRow({ log }: { log: AuditLog }) {
       <td className="px-4 py-3">
         <p className="font-semibold text-slate-900">{ACTION_LABELS[log.action] ?? humanize(log.action)}</p>
         <p className="mt-1 text-xs text-slate-500">{ENTITY_LABELS[log.entity_type] ?? humanize(log.entity_type)}</p>
-        {log.entity_type === "child_intake_document" && log.entity_id ? (
+        {log.entity_type === "dragon_boat_document" && log.entity_id ? (
           <Link href={`/admin/documents/${log.entity_id}`} className="mt-2 inline-block text-xs font-semibold text-brand-600 hover:text-brand-700">
             Open document
           </Link>
@@ -139,12 +144,12 @@ function AuditRow({ log }: { log: AuditLog }) {
         {actor?.email ? <p className="mt-1 text-xs text-slate-500">{actor.email}</p> : null}
       </td>
       <td className="px-4 py-3 text-slate-700">
-        {child ? (
+        {team ? (
           <>
-            <Link href={`/admin/children/${child.id}`} className="font-semibold text-brand-600 hover:text-brand-700">
-              {child.first_name} {child.last_name}
+            <Link href={`/admin/teams/${team.id}`} className="font-semibold text-brand-600 hover:text-brand-700">
+              {team.name}
             </Link>
-            {child.external_patient_id ? <p className="mt-1 text-xs text-slate-500">{child.external_patient_id}</p> : null}
+            <p className="mt-1 text-xs text-slate-500">{team.status}</p>
           </>
         ) : (
           <span className="text-slate-400">-</span>

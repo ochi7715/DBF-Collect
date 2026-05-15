@@ -5,7 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Profile, UserRole } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
-const ROLE_OPTIONS: UserRole[] = ["caregiver", "staff", "admin"];
+const ROLE_OPTIONS: UserRole[] = ["team_contact", "staff", "admin"];
 
 export default async function AdminUsersPage({
   searchParams,
@@ -200,6 +200,7 @@ function getStatusCopy(status: string) {
 }
 
 function capitalize(value: string) {
+  if (value === "team_contact") return "Team contact";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 

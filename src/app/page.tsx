@@ -4,13 +4,13 @@ import { ArrowRight, CheckCircle2, FileCheck2, LockKeyhole, ShieldCheck, Signatu
 const workflowItems = [
   {
     icon: <Users size={22} />,
-    title: "Caregiver access",
-    body: "Invite parents and guardians into child-specific records with separate view and upload permissions.",
+    title: "Team access",
+    body: "Invite one captain, manager, and co-captain into team-specific records with view and upload permissions.",
   },
   {
     icon: <FileCheck2 size={22} />,
-    title: "Intake checklist",
-    body: "Keep required uploads, staff review, correction notes, and completed files in one organized workflow.",
+    title: "Race forms",
+    body: "Track Form A1, A2, B1, B2, D, and every team member's Form C waiver in one workflow.",
   },
   {
     icon: <Signature size={22} />,
@@ -28,10 +28,10 @@ export default function HomePage() {
         <div className="abs-home-shell">
           <header className="abs-home-header">
             <Link href="/" className="abs-home-brand">
-              <span className="abs-home-logo">A</span>
-              <span>
-                <span className="abs-home-brand-name">ABS Connect</span>
-                <span className="abs-home-brand-subtitle">Intake Portal</span>
+                <span className="abs-home-logo">D</span>
+                <span>
+                <span className="abs-home-brand-name">Dragon Boat Docs</span>
+                <span className="abs-home-brand-subtitle">Race Portal</span>
               </span>
             </Link>
             <nav className="abs-home-nav">
@@ -49,11 +49,11 @@ export default function HomePage() {
 
           <div className="abs-home-copy">
             <p className="abs-home-kicker">
-              <ShieldCheck size={16} /> Secure child-centered intake
+              <ShieldCheck size={16} /> Secure race document collection
             </p>
-            <h1>ABS Connect</h1>
+            <h1>Dragon Boat Docs</h1>
             <p className="abs-home-lede">
-              A focused portal for caregiver onboarding, child intake documents, staff review, and signature-ready paperwork.
+              A focused portal for team access, race category rules, Form C waivers, registration forms, seating charts, and admin review.
             </p>
             <div className="abs-home-actions">
               <Link href="/login" className="abs-home-button abs-home-button-primary abs-home-button-large">
@@ -63,7 +63,7 @@ export default function HomePage() {
                 Create account
               </Link>
               <Link href="/login?redirectedFrom=%2Fadmin" className="abs-home-button abs-home-button-secondary abs-home-button-large">
-                Staff back office
+                Admin back office
               </Link>
             </div>
           </div>
@@ -117,9 +117,9 @@ function AnimatedPortalGraphic() {
           </span>
         </div>
         <div className="abs-home-checklist">
-          <WorkflowRow label="Insurance card" done />
-          <WorkflowRow label="Photo ID" done />
-          <WorkflowRow label="Consent" />
+          <WorkflowRow label="Form A1" done />
+          <WorkflowRow label="Form C" done />
+          <WorkflowRow label="Form D" />
         </div>
       </div>
 

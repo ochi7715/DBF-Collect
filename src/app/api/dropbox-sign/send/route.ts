@@ -12,40 +12,41 @@ export async function POST(request: Request) {
 
   const admin = createSupabaseAdminClient();
   const { data: doc, error } = await admin
-    .from("child_intake_documents")
-    .select("*, children(*), intake_document_templates(*)")
+    .from("dragon_boat_documents")
+    .select("*, teams(*), team_members(*), document_forms(*)")
     .eq("id", documentId)
     .single();
 
   if (error || !doc) throw new Error("Document not found");
-  const template = doc.intake_document_templates;
-  if (!template?.requires_signature || !template.dropbox_template_id) {
-    throw new Error("This document template is not configured for Dropbox Sign");
+  const form = doc.document_forms;
+  if (!form?.requires_signature || !form.dropbox_template_id) {
+    throw new Error("This document form is not configured for Dropbox Sign");
   }
 
-  const { data: caregiverRows } = await admin
-    .from("child_caregivers")
+  const { data: contactRows } = await admin
+    .from("team_contacts")
     .select("profiles(*)")
-    .eq("child_id", doc.child_id)
+    .eq("team_id", doc.team_id)
+    .eq("contact_role", "captain")
     .eq("is_authorized", true)
     .limit(1);
 
-  const caregiver = caregiverRows?.[0]?.profiles as any;
-  if (!caregiver?.email) throw new Error("No authorized caregiver email found");
+  const captain = contactRows?.[0]?.profiles as any;
+  if (!captain?.email) throw new Error("No authorized team captain email found");
 
   const response = await sendDropboxTemplateSignatureRequest({
-    templateId: template.dropbox_template_id,
-    subject: `${template.name} for ${doc.children.first_name} ${doc.children.last_name}`,
-    message: "Please review and sign this intake document.",
+    templateId: form.dropbox_template_id,
+    subject: `${form.name} for ${doc.teams.name}`,
+    message: "Please review and sign this race document.",
     signers: [
       {
-        role: "Caregiver",
-        name: caregiver.full_name ?? caregiver.email,
-        emailAddress: caregiver.email,
+        role: "Team Captain",
+        name: captain.full_name ?? captain.email,
+        emailAddress: captain.email,
       },
     ],
     metadata: {
-      child_id: doc.child_id,
+      team_id: doc.team_id,
       document_id: doc.id,
     },
   });
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   const status = response.signature_request.is_complete ? "signed" : "sent_for_signature";
 
   const { error: updateError } = await admin
-    .from("child_intake_documents")
+    .from("dragon_boat_documents")
     .update({
       status,
       dropbox_signature_request_id: signatureRequestId,
@@ -68,11 +69,11 @@ export async function POST(request: Request) {
 
   await writeAuditLog({
     actorId: profile.id,
-    childId: doc.child_id,
-    entityType: "child_intake_document",
+    teamId: doc.team_id,
+    entityType: "dragon_boat_document",
     entityId: documentId,
     action: "dropbox_signature_sent",
-    details: { signatureRequestId, caregiverEmail: caregiver.email },
+    details: { signatureRequestId, captainEmail: captain.email },
     request,
   });
 
