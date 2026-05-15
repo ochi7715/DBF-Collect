@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BrandLockup } from "@/components/brand-lockup";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -36,9 +37,7 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8">
-          <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">
-            Dragon Boat Docs
-          </Link>
+          <BrandLockup />
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Reset password</h1>
           <p className="mt-2 text-sm text-slate-600">Enter your email and we will send a secure link to set a new password.</p>
         </div>

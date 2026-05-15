@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export default function SetupRequiredPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
       <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">Dragon Boat Docs</p>
+        <BrandLockup />
         <h1 className="mt-3 text-3xl font-bold text-slate-950">Supabase setup required</h1>
         <p className="mt-3 text-slate-600">
           The portal needs Supabase environment variables before protected pages like the admin back office can load.

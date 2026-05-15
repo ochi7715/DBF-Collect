@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity, CalendarDays, ClipboardList, FileText, Home, ListChecks, ShieldCheck, Trophy, UserCog, Users } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
+import { BrandLockup } from "@/components/brand-lockup";
 import type { Profile } from "@/lib/types";
 import { isStaffRole } from "@/lib/auth";
 
@@ -12,13 +13,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
     <div className="min-h-screen bg-slate-100">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <Link href="/portal" className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-brand-600 font-bold text-white">D</div>
-            <div>
-              <p className="font-bold leading-tight text-slate-950">PaddlePass</p>
-              <p className="text-xs text-slate-500">Dragon Boat Festival portal</p>
-            </div>
-          </Link>
+          <BrandLockup href="/portal" compact />
           <AccountMenu
             avatarUrl={profile.avatar_url}
             email={profile.email}

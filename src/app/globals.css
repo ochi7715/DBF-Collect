@@ -7,14 +7,14 @@
 }
 
 body {
-  background: #f6f8fb;
-  color: #172033;
+  background: #f5fbf8;
+  color: #062318;
 }
 
 input,
 select,
 textarea {
-  color: #172033;
+  color: #062318;
 }
 
 .focus-ring {
@@ -81,7 +81,7 @@ textarea {
   position: absolute;
   height: 3px;
   border-radius: 999px;
-  background: #1767cc;
+  background: #00734e;
   opacity: 0.7;
   transform-origin: left center;
   animation: homeSlide 4.2s ease-in-out infinite;

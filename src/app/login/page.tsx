@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { BrandLockup } from "@/components/brand-lockup";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { safeRedirect } from "@/lib/utils";
@@ -128,7 +129,7 @@ function LoginShell({ children }: { children?: React.ReactNode }) {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-100 px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">PaddlePass</p>
+          <BrandLockup />
           <h1 className="mt-2 text-3xl font-bold text-slate-950">Sign in</h1>
           <p className="mt-2 text-sm text-slate-600">Access your Dragon Boat Festival team portal.</p>
         </div>
