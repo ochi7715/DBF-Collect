@@ -26,7 +26,7 @@ export default async function AdminFormsPage({
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Form setup</h1>
-        <p className="mt-2 text-slate-600">Maintain Form A1, A2, B1, B2, C, and D labels, blank form files, upload requirements, and Dropbox Sign template IDs.</p>
+        <p className="mt-2 text-slate-600">Manage the blank forms teams use.</p>
       </div>
 
       {status ? (
@@ -88,7 +88,7 @@ export default async function AdminFormsPage({
         ))}
         {forms.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-            No document forms have been seeded yet. Run `supabase/seed.sql`.
+            No forms are ready yet.
           </div>
         ) : null}
       </div>

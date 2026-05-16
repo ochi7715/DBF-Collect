@@ -26,7 +26,7 @@ export function RosterLayoutPanel({
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-5">
         <h2 className="text-lg font-bold text-slate-950">Roster seating charts</h2>
-        <p className="mt-1 text-sm text-slate-600">Save the seating layout for each roster form. Admins generate the final PDFs from the saved roster.</p>
+        <p className="mt-1 text-sm text-slate-600">Save the seating chart for each roster.</p>
       </div>
 
       <div className="divide-y divide-slate-200">

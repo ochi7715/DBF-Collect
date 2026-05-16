@@ -28,7 +28,7 @@ export default async function AdminHomePage() {
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Race document dashboard</h1>
-        <p className="mt-2 text-slate-600">Track team access, race categories, required forms, roster waivers, and document review.</p>
+        <p className="mt-2 text-slate-600">See teams, forms, waivers, and reviews at a glance.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -45,9 +45,9 @@ export default async function AdminHomePage() {
         <AdminCard href="/admin/teams" icon={<Trophy size={24} />} title="Teams" body="Create teams, assign categories, and manage team captain access." />
         <AdminCard href="/admin/team-contacts" icon={<Users size={24} />} title="Team contacts" body="View captains, managers, co-captains, and pending invitations." />
         <AdminCard href="/admin/categories" icon={<ListChecks size={24} />} title="Race categories" body="Edit Regular, USDBOC, and invitational race category rules." />
-        <AdminCard href="/admin/practice" icon={<CalendarDays size={24} />} title="Practice schedule" body="Set practice capacity, assign recurring time slots, and review attendance responses." />
-        <AdminCard href="/admin/templates" icon={<ClipboardList size={24} />} title="Form setup" body="Maintain form labels, blank files, upload rules, and Dropbox Sign template IDs." />
-        <AdminCard href="/admin/audit" icon={<Activity size={24} />} title="Activity log" body="Review sensitive activity across teams, uploads, invitations, and signatures." />
+        <AdminCard href="/admin/practice" icon={<CalendarDays size={24} />} title="Practice schedule" body="Manage weekend practice times and attendance." />
+        <AdminCard href="/admin/templates" icon={<ClipboardList size={24} />} title="Form setup" body="Manage blank forms and form names." />
+        <AdminCard href="/admin/audit" icon={<Activity size={24} />} title="Activity log" body="See recent activity across teams and forms." />
         {profile.role === "admin" ? (
           <AdminCard href="/admin/users" icon={<UserCog size={24} />} title="User access" body="Invite staff and manage account roles or active status." />
         ) : null}

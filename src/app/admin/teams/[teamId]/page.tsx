@@ -81,8 +81,8 @@ export default async function AdminTeamDetailPage({
       {highlightedInvitationId ? (
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
           {delivery === "email-sent"
-            ? "Invitation created and Supabase was asked to send the email."
-            : "Invitation created. Use the invitation link below if email delivery is not configured yet."}
+            ? "Invitation created and email sent."
+            : "Invitation created. Use the link below if needed."}
         </div>
       ) : null}
 
@@ -291,7 +291,7 @@ function getGenerationItems(
       return {
         formCode,
         label: "Roster PDF",
-        description: "Uses the saved roster layout and team member profile details.",
+        description: "Creates the roster form from the saved seating chart.",
         ready: issues.length === 0,
         issues,
       };
@@ -300,7 +300,7 @@ function getGenerationItems(
     return {
       formCode,
       label: "Registration PDF",
-      description: "Uses the saved team and contact details for the current race category.",
+      description: "Creates the registration form from the team details.",
       ready: true,
       issues: [],
     };

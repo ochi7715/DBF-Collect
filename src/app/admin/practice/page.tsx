@@ -84,7 +84,7 @@ export default async function AdminPracticePage({
         </div>
         <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Practice schedule</h1>
         <p className="mt-2 text-slate-600">
-          Set interval capacity for Saturday and Sunday, assign up to two recurring one-hour slots per team, and review this week&apos;s attendance responses.
+          Set weekend practice times, assign teams, and review this week&apos;s attendance.
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default async function AdminPracticePage({
       <div className="grid min-w-0 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <form action="/api/admin/practice/capacities" method="post" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-bold text-slate-950">Slot capacity</h2>
-          <p className="mt-1 text-sm text-slate-600">Available teams per 15-minute start interval, counted separately for each day.</p>
+          <p className="mt-1 text-sm text-slate-600">Choose how many teams can start in each time slot on each day.</p>
           <div className="mt-5 space-y-5">
             {PRACTICE_DAYS.map((day) => (
               <section key={day} className="rounded-2xl border border-slate-200 p-4">
@@ -133,7 +133,7 @@ export default async function AdminPracticePage({
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-5 py-4">
               <h2 className="text-lg font-bold text-slate-950">Assignments</h2>
-              <p className="mt-1 text-sm text-slate-600">Practice slots are optional. Leave a team unassigned if they do not practice.</p>
+              <p className="mt-1 text-sm text-slate-600">Choose practice times for the teams that will attend.</p>
             </div>
             <div className="divide-y divide-slate-200">
               {(teamsResult.data ?? []).map((team) => {
@@ -299,7 +299,7 @@ function PracticeSetupNotice() {
         </div>
         <h1 className="mt-2 text-3xl font-bold text-amber-950">Practice scheduling is not ready yet</h1>
         <p className="mt-2 max-w-2xl text-amber-900">
-          Apply the latest Supabase schema first. The practice tables are not present in the database yet, so capacity and assignments cannot be managed safely.
+          Finish setup before assigning practice times.
         </p>
       </div>
     </section>
@@ -321,7 +321,7 @@ function getStatusCopy(status: string) {
     case "additional-needs-primary":
       return "Assign a primary practice slot before adding an additional one.";
     case "capacity-too-low":
-      return "Capacity cannot be set below the number of teams already assigned to that interval.";
+      return "Capacity cannot be lower than the teams already assigned there.";
     case "invalid-practice-day":
       return "Choose Saturday or Sunday for each assigned practice slot.";
     default:

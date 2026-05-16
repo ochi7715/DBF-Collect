@@ -31,7 +31,7 @@ export default async function AdminUsersPage({
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Admin</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">User access</h1>
-        <p className="mt-2 text-slate-600">Invite staff, promote admins, and deactivate accounts without touching SQL.</p>
+        <p className="mt-2 text-slate-600">Invite staff and manage who can access the portal.</p>
       </div>
 
       {status ? (
@@ -96,7 +96,7 @@ function InviteStaffModal({ closeHref }: { closeHref: string }) {
             <h2 id="invite-staff-title" className="mt-1 text-2xl font-bold text-slate-950">
               Invite staff
             </h2>
-            <p className="mt-2 text-sm text-slate-600">Supabase will send an invitation email and this app will assign the selected role.</p>
+            <p className="mt-2 text-sm text-slate-600">Send an invite and choose this person&apos;s role.</p>
           </div>
           <Link
             href={closeHref}

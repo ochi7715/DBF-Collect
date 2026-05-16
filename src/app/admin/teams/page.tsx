@@ -44,7 +44,7 @@ export default async function AdminTeamsPage({ searchParams }: { searchParams: P
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
             <h1 className="mt-2 text-3xl font-bold text-slate-950">Teams</h1>
-            <p className="mt-2 text-slate-600">Create teams, assign race categories, and track access roles.</p>
+            <p className="mt-2 text-slate-600">Create teams, choose categories, and manage team roles.</p>
           </div>
           <Link href="/admin/teams/new" className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 font-semibold text-white hover:bg-brand-700">
             <Plus size={18} /> New team

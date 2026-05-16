@@ -25,7 +25,7 @@ export default async function AdminCategoriesPage({
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Race categories</h1>
-        <p className="mt-2 text-slate-600">Add and edit categories. The rule set controls whether teams need A1/B1, A1/B2, or A2/B2 plus Form D.</p>
+        <p className="mt-2 text-slate-600">Create race categories and choose the forms each one uses.</p>
       </div>
 
       {status ? (
@@ -86,7 +86,7 @@ function getStatusCopy(status: string) {
     case "deactivated":
       return "Race category already had teams, so it was deactivated instead of deleted.";
     case "updated":
-      return "Race category updated and team form requirements were refreshed.";
+      return "Race category updated.";
     default:
       return "Race category saved.";
   }

@@ -46,7 +46,7 @@ export default async function TeamDocumentsPage({ params }: { params: Promise<{ 
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Team documents</p>
           <h1 className="mt-2 text-3xl font-bold text-slate-950">{team.name}</h1>
           <p className="mt-2 text-slate-600">
-            {team.race_categories?.name ?? "Race category pending"} requires {requiredFormCodes.map((code) => `Form ${code}`).join(", ")}.
+            Forms for this team: {requiredFormCodes.map((code) => `Form ${code}`).join(", ")}.
           </p>
           <p className="mt-1 text-sm text-slate-500">
             {getRaceCategoryRuleSummary(team.race_categories?.rule_set)}

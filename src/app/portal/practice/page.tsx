@@ -66,7 +66,7 @@ export default async function PracticeSchedulePage() {
         </div>
         <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Weekly practice</h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Review your weekend practice sessions, confirm attendance, and preupload seating charts before each session.
+          See your weekend practice times, confirm attendance, and add seating charts for each session.
         </p>
       </div>
 
@@ -339,7 +339,7 @@ function PracticeSetupNotice() {
         </div>
         <h1 className="mt-2 text-3xl font-bold text-amber-950">Practice scheduling is not ready yet</h1>
         <p className="mt-2 max-w-2xl text-amber-900">
-          The practice tables have not been added to the database yet. An admin needs to apply the latest Supabase schema before weekly practice scheduling can be used.
+          Practice times are not available yet.
         </p>
       </div>
     </section>

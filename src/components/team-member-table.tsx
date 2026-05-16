@@ -12,7 +12,7 @@ export function TeamMemberTable({
   members,
   canUpload,
   title = "Team members",
-  description = "Update the roster details used in generated B forms.",
+  description = "Keep each team member's roster details up to date.",
   emptyMessage = "Add team members to begin building the roster.",
 }: {
   teamId: string;

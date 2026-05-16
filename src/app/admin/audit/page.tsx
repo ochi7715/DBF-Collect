@@ -56,7 +56,7 @@ export default async function AdminAuditPage({
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Activity log</h1>
         <p className="mt-2 text-slate-600">
-          Review sensitive activity across teams, contact access, uploaded forms, invitations, and signatures.
+          See recent activity across teams, forms, invitations, and signatures.
         </p>
       </div>
 

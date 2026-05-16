@@ -43,7 +43,7 @@ export default async function TeamContactsPage({ searchParams }: { searchParams:
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Back office</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">Team contacts</h1>
-        <p className="mt-2 text-slate-600">View captains, managers, co-captains, team access, and pending invitations.</p>
+        <p className="mt-2 text-slate-600">See captains, managers, co-captains, and invitations.</p>
       </div>
 
       <form className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
