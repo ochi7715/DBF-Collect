@@ -30,7 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   const admin = createSupabaseAdminClient();
   const { data: assignment, error: assignmentError } = await admin
     .from("team_practice_assignments")
-    .select("id")
+    .select("id, practice_day")
     .eq("team_id", teamId)
     .eq("assignment_kind", parsed.assignmentKind)
     .maybeSingle();
@@ -44,6 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
         team_id: teamId,
         practice_week_start: parsed.weekStart,
         assignment_kind: parsed.assignmentKind,
+        practice_day: assignment.practice_day,
         response: parsed.response,
         responded_by: profile.id,
         responded_at: new Date().toISOString(),

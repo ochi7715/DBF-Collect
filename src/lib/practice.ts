@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   PracticeAssignmentKind,
+  PracticeDay,
   PracticeSlotCapacity,
   TeamPracticeAssignment,
   TeamPracticeAttendance,
@@ -15,9 +16,10 @@ export const PRACTICE_SLOT_OPTIONS = Array.from({ length: 13 }, (_, index) => {
 });
 
 export const PRACTICE_ASSIGNMENT_KINDS: PracticeAssignmentKind[] = ["primary", "additional"];
+export const PRACTICE_DAYS: PracticeDay[] = ["saturday", "sunday"];
 
-export function getPracticeSlotInputName(slot: string) {
-  return `capacity_${slot.replace(":", "")}`;
+export function getPracticeSlotInputName(day: PracticeDay, slot: string) {
+  return `capacity_${day}_${slot.replace(":", "")}`;
 }
 
 export function normalizePracticeSlot(value: string | null | undefined) {
@@ -42,6 +44,39 @@ export function formatPracticeSlotLabel(value: string | null | undefined) {
     minute: "2-digit",
   }).format(endDate);
   return `${start} - ${end}`;
+}
+
+export function normalizePracticeDay(value: string | null | undefined) {
+  return PRACTICE_DAYS.includes(value as PracticeDay) ? (value as PracticeDay) : null;
+}
+
+export function getPracticeDayLabel(day: PracticeDay | null | undefined) {
+  if (day === "saturday") return "Saturday";
+  if (day === "sunday") return "Sunday";
+  return "Weekend";
+}
+
+export function formatPracticeSessionLabel(day: PracticeDay | null | undefined, slot: string | null | undefined) {
+  return `${getPracticeDayLabel(day)} | ${formatPracticeSlotLabel(slot)}`;
+}
+
+export function getPracticeSessionValue(day: PracticeDay, slot: string) {
+  return `${day}|${slot}`;
+}
+
+export function parsePracticeSessionValue(value: string | null | undefined) {
+  if (!value) return { practiceDay: null, slotStartTime: null };
+  const [day, slot] = value.split("|");
+  return {
+    practiceDay: normalizePracticeDay(day),
+    slotStartTime: normalizePracticeSlot(slot),
+  };
+}
+
+export function getPracticeDaySlotKey(day: PracticeDay | null | undefined, slot: string | null | undefined) {
+  const normalizedDay = normalizePracticeDay(day);
+  const normalizedSlot = normalizePracticeSlot(slot);
+  return normalizedDay && normalizedSlot ? `${normalizedDay}:${normalizedSlot}` : null;
 }
 
 export function getPracticeAssignmentKindLabel(kind: PracticeAssignmentKind) {
@@ -83,6 +118,7 @@ export async function getPracticeSlotCapacities() {
   const { data, error } = await supabase
     .from("practice_slot_capacities")
     .select("*")
+    .order("practice_day", { ascending: true })
     .order("slot_start_time", { ascending: true });
 
   if (error) throw error;
@@ -98,7 +134,8 @@ export function isMissingPracticeSchemaError(error: unknown) {
     Boolean(candidate?.message?.includes("team_practice_assignments")) ||
     Boolean(candidate?.message?.includes("team_practice_attendance")) ||
     Boolean(candidate?.message?.includes("team_practice_seating_charts")) ||
-    Boolean(candidate?.message?.includes("assignment_kind"))
+    Boolean(candidate?.message?.includes("assignment_kind")) ||
+    Boolean(candidate?.message?.includes("practice_day"))
   );
 }
 

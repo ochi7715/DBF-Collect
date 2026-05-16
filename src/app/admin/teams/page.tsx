@@ -90,7 +90,8 @@ export default async function AdminTeamsPage({ searchParams }: { searchParams: P
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[640px] w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
             <tr>
               <th className="px-4 py-3">Team</th>
@@ -118,7 +119,8 @@ export default async function AdminTeamsPage({ searchParams }: { searchParams: P
               </tr>
             ) : null}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </section>
   );

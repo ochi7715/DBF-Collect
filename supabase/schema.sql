@@ -117,6 +117,16 @@ end $$;
 alter type public.practice_assignment_kind add value if not exists 'primary';
 alter type public.practice_assignment_kind add value if not exists 'additional';
 
+do $$
+begin
+  create type public.practice_day as enum ('saturday', 'sunday');
+exception
+  when duplicate_object then null;
+end $$;
+
+alter type public.practice_day add value if not exists 'saturday';
+alter type public.practice_day add value if not exists 'sunday';
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
@@ -251,21 +261,26 @@ create table if not exists public.team_form_rosters (
 );
 
 create table if not exists public.practice_slot_capacities (
-  slot_start_time time primary key,
+  practice_day public.practice_day not null default 'saturday',
+  slot_start_time time not null,
   capacity int not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint practice_slot_capacities_capacity_check check (capacity >= 0)
+  constraint practice_slot_capacities_capacity_check check (capacity >= 0),
+  primary key (practice_day, slot_start_time)
 );
 
 create table if not exists public.team_practice_assignments (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
   assignment_kind public.practice_assignment_kind not null default 'primary',
-  slot_start_time time not null references public.practice_slot_capacities(slot_start_time),
+  practice_day public.practice_day not null default 'saturday',
+  slot_start_time time not null,
   assigned_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint team_practice_assignments_slot_fkey foreign key (practice_day, slot_start_time)
+    references public.practice_slot_capacities(practice_day, slot_start_time)
 );
 
 create table if not exists public.team_practice_attendance (
@@ -273,6 +288,7 @@ create table if not exists public.team_practice_attendance (
   team_id uuid not null references public.teams(id) on delete cascade,
   practice_week_start date not null,
   assignment_kind public.practice_assignment_kind not null default 'primary',
+  practice_day public.practice_day not null default 'saturday',
   response public.practice_attendance_status not null,
   responded_by uuid references public.profiles(id),
   responded_at timestamptz not null default now(),
@@ -285,6 +301,7 @@ create table if not exists public.team_practice_seating_charts (
   team_id uuid not null references public.teams(id) on delete cascade,
   practice_week_start date not null,
   assignment_kind public.practice_assignment_kind not null default 'primary',
+  practice_day public.practice_day not null default 'saturday',
   uploaded_by uuid references public.profiles(id),
   file_path text not null,
   file_name text not null,
@@ -297,8 +314,36 @@ create table if not exists public.team_practice_seating_charts (
 alter table public.team_practice_assignments
   add column if not exists assignment_kind public.practice_assignment_kind not null default 'primary';
 
+alter table public.practice_slot_capacities
+  add column if not exists practice_day public.practice_day not null default 'saturday';
+
+alter table public.team_practice_assignments
+  add column if not exists practice_day public.practice_day not null default 'saturday';
+
 alter table public.team_practice_attendance
   add column if not exists assignment_kind public.practice_assignment_kind not null default 'primary';
+
+alter table public.team_practice_attendance
+  add column if not exists practice_day public.practice_day not null default 'saturday';
+
+alter table public.team_practice_seating_charts
+  add column if not exists practice_day public.practice_day not null default 'saturday';
+
+alter table public.team_practice_assignments
+  drop constraint if exists team_practice_assignments_slot_start_time_fkey;
+
+alter table public.practice_slot_capacities
+  drop constraint if exists practice_slot_capacities_pkey;
+
+alter table public.practice_slot_capacities
+  add constraint practice_slot_capacities_pkey primary key (practice_day, slot_start_time);
+
+alter table public.team_practice_assignments
+  drop constraint if exists team_practice_assignments_slot_fkey;
+
+alter table public.team_practice_assignments
+  add constraint team_practice_assignments_slot_fkey foreign key (practice_day, slot_start_time)
+  references public.practice_slot_capacities(practice_day, slot_start_time);
 
 alter table public.team_practice_assignments
   drop constraint if exists team_practice_assignments_team_id_key;
@@ -387,7 +432,8 @@ create index if not exists idx_team_invitations_token on public.team_invitations
 create index if not exists idx_team_invitations_team_status on public.team_invitations(team_id, status);
 create index if not exists idx_team_members_team_id on public.team_members(team_id);
 create index if not exists idx_team_form_rosters_team_id on public.team_form_rosters(team_id);
-create index if not exists idx_team_practice_assignments_slot on public.team_practice_assignments(slot_start_time);
+drop index if exists public.idx_team_practice_assignments_slot;
+create index if not exists idx_team_practice_assignments_slot on public.team_practice_assignments(practice_day, slot_start_time);
 create unique index if not exists idx_team_practice_assignments_team_kind_unique on public.team_practice_assignments(team_id, assignment_kind);
 drop index if exists public.idx_team_practice_assignments_team_slot_unique;
 create unique index if not exists idx_team_practice_attendance_team_week_kind_unique on public.team_practice_attendance(team_id, practice_week_start, assignment_kind);
@@ -757,22 +803,35 @@ create policy "team_practice_seating_charts_update_uploaders" on public.team_pra
 for update using (public.can_upload_team_documents(team_id))
 with check (public.can_upload_team_documents(team_id));
 
-insert into public.practice_slot_capacities (slot_start_time, capacity)
+insert into public.practice_slot_capacities (practice_day, slot_start_time, capacity)
 values
-  ('10:00', 0),
-  ('10:15', 0),
-  ('10:30', 0),
-  ('10:45', 0),
-  ('11:00', 0),
-  ('11:15', 0),
-  ('11:30', 0),
-  ('11:45', 0),
-  ('12:00', 0),
-  ('12:15', 0),
-  ('12:30', 0),
-  ('12:45', 0),
-  ('13:00', 0)
-on conflict (slot_start_time) do nothing;
+  ('saturday', '10:00', 0),
+  ('saturday', '10:15', 0),
+  ('saturday', '10:30', 0),
+  ('saturday', '10:45', 0),
+  ('saturday', '11:00', 0),
+  ('saturday', '11:15', 0),
+  ('saturday', '11:30', 0),
+  ('saturday', '11:45', 0),
+  ('saturday', '12:00', 0),
+  ('saturday', '12:15', 0),
+  ('saturday', '12:30', 0),
+  ('saturday', '12:45', 0),
+  ('saturday', '13:00', 0),
+  ('sunday', '10:00', 0),
+  ('sunday', '10:15', 0),
+  ('sunday', '10:30', 0),
+  ('sunday', '10:45', 0),
+  ('sunday', '11:00', 0),
+  ('sunday', '11:15', 0),
+  ('sunday', '11:30', 0),
+  ('sunday', '11:45', 0),
+  ('sunday', '12:00', 0),
+  ('sunday', '12:15', 0),
+  ('sunday', '12:30', 0),
+  ('sunday', '12:45', 0),
+  ('sunday', '13:00', 0)
+on conflict (practice_day, slot_start_time) do nothing;
 drop policy if exists "document_forms_select_authenticated" on public.document_forms;
 drop policy if exists "document_forms_staff_write" on public.document_forms;
 

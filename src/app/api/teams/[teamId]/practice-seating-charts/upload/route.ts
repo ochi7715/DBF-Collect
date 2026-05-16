@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data: assignment, error: assignmentError } = await admin
     .from("team_practice_assignments")
-    .select("id")
+    .select("id, practice_day")
     .eq("team_id", teamId)
     .eq("assignment_kind", parsed.data.assignmentKind)
     .maybeSingle();
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "bin";
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${teamId}/practice-seating-charts/${parsed.data.weekStart}-${parsed.data.assignmentKind}-${Date.now()}.${extension}`;
+  const path = `${teamId}/practice-seating-charts/${parsed.data.weekStart}-${assignment.practice_day}-${parsed.data.assignmentKind}-${Date.now()}.${extension}`;
   const arrayBuffer = await file.arrayBuffer();
   const { error: uploadError } = await admin.storage
     .from("race-documents")
@@ -73,6 +73,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         team_id: teamId,
         practice_week_start: parsed.data.weekStart,
         assignment_kind: parsed.data.assignmentKind,
+        practice_day: assignment.practice_day,
         uploaded_by: profile.id,
         file_path: path,
         file_name: safeName,

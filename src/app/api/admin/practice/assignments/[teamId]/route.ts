@@ -1,56 +1,79 @@
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireStaff } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
-import { normalizePracticeSlot } from "@/lib/practice";
+import { getPracticeDaySlotKey, parsePracticeSessionValue } from "@/lib/practice";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-const assignmentSchema = z.object({
-  primarySlotStartTime: z.string().nullable(),
-  additionalSlotStartTime: z.string().nullable(),
-});
 
 export async function POST(request: Request, { params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = await params;
   const actor = await requireStaff();
   const formData = await request.formData();
-  const parsed = assignmentSchema.parse({
-    primarySlotStartTime: normalizePracticeSlot(formData.get("primarySlotStartTime")?.toString() ?? null),
-    additionalSlotStartTime: normalizePracticeSlot(formData.get("additionalSlotStartTime")?.toString() ?? null),
-  });
+  const primary = parsePracticeSessionValue(formData.get("primarySession")?.toString() ?? null);
+  const additional = parsePracticeSessionValue(formData.get("additionalSession")?.toString() ?? null);
+  const parsed = {
+    primaryPracticeDay: primary.practiceDay,
+    primarySlotStartTime: primary.slotStartTime,
+    additionalPracticeDay: additional.practiceDay,
+    additionalSlotStartTime: additional.slotStartTime,
+  };
   const admin = createSupabaseAdminClient();
 
   if (!parsed.primarySlotStartTime && parsed.additionalSlotStartTime) {
     redirect("/admin/practice?status=additional-needs-primary");
   }
-  if (parsed.primarySlotStartTime && parsed.primarySlotStartTime === parsed.additionalSlotStartTime) {
+  if (parsed.primarySlotStartTime && !parsed.primaryPracticeDay) {
+    redirect("/admin/practice?status=invalid-practice-day");
+  }
+  if (parsed.additionalSlotStartTime && !parsed.additionalPracticeDay) {
+    redirect("/admin/practice?status=invalid-practice-day");
+  }
+  if (
+    parsed.primaryPracticeDay &&
+    parsed.primarySlotStartTime &&
+    parsed.primaryPracticeDay === parsed.additionalPracticeDay &&
+    parsed.primarySlotStartTime === parsed.additionalSlotStartTime
+  ) {
     redirect("/admin/practice?status=duplicate-slots");
   }
 
   const requestedSlots = [
-    { assignmentKind: "primary" as const, slotStartTime: parsed.primarySlotStartTime },
-    { assignmentKind: "additional" as const, slotStartTime: parsed.additionalSlotStartTime },
+    {
+      assignmentKind: "primary" as const,
+      practiceDay: parsed.primaryPracticeDay,
+      slotStartTime: parsed.primarySlotStartTime,
+    },
+    {
+      assignmentKind: "additional" as const,
+      practiceDay: parsed.additionalPracticeDay,
+      slotStartTime: parsed.additionalSlotStartTime,
+    },
   ];
-  const activeSlots = requestedSlots.filter((slot) => slot.slotStartTime);
+  const activeSlots = requestedSlots.filter((slot) => slot.practiceDay && slot.slotStartTime);
 
   const [{ data: capacities, error: capacityError }, { data: otherAssignments, error: assignmentError }] = await Promise.all([
-    admin.from("practice_slot_capacities").select("slot_start_time, capacity"),
-    admin.from("team_practice_assignments").select("slot_start_time").neq("team_id", teamId),
+    admin.from("practice_slot_capacities").select("practice_day, slot_start_time, capacity"),
+    admin.from("team_practice_assignments").select("practice_day, slot_start_time").neq("team_id", teamId),
   ]);
   if (capacityError || assignmentError) throw capacityError ?? assignmentError;
 
-  const capacityBySlot = new Map((capacities ?? []).map((row) => [String(row.slot_start_time).slice(0, 5), row.capacity]));
+  const capacityBySlot = new Map(
+    (capacities ?? [])
+      .map((row) => [getPracticeDaySlotKey(row.practice_day, row.slot_start_time), row.capacity] as const)
+      .filter((row): row is [string, number] => Boolean(row[0]))
+  );
   const assignedCountBySlot = new Map<string, number>();
   for (const assignment of otherAssignments ?? []) {
-    const slot = String(assignment.slot_start_time).slice(0, 5);
-    assignedCountBySlot.set(slot, (assignedCountBySlot.get(slot) ?? 0) + 1);
+    const key = getPracticeDaySlotKey(assignment.practice_day, assignment.slot_start_time);
+    if (!key) continue;
+    assignedCountBySlot.set(key, (assignedCountBySlot.get(key) ?? 0) + 1);
   }
   for (const assignment of activeSlots) {
-    const slot = assignment.slotStartTime!;
-    assignedCountBySlot.set(slot, (assignedCountBySlot.get(slot) ?? 0) + 1);
+    const key = getPracticeDaySlotKey(assignment.practiceDay, assignment.slotStartTime);
+    if (!key) continue;
+    assignedCountBySlot.set(key, (assignedCountBySlot.get(key) ?? 0) + 1);
   }
-  for (const [slot, assignedCount] of assignedCountBySlot) {
-    if (assignedCount > (capacityBySlot.get(slot) ?? 0)) {
+  for (const [slotKey, assignedCount] of assignedCountBySlot) {
+    if (assignedCount > (capacityBySlot.get(slotKey) ?? 0)) {
       redirect("/admin/practice?status=slot-full");
     }
   }
@@ -69,6 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     const rows = activeSlots.map((assignment) => ({
       team_id: teamId,
       assignment_kind: assignment.assignmentKind,
+      practice_day: assignment.practiceDay,
       slot_start_time: assignment.slotStartTime,
       assigned_by: actor.id,
       updated_at: new Date().toISOString(),

@@ -3,7 +3,7 @@ import { CalendarDays } from "lucide-react";
 import { UploadPracticeSeatingChartForm } from "@/components/upload-practice-seating-chart-form";
 import { requireProfile, isStaffRole } from "@/lib/auth";
 import {
-  formatPracticeSlotLabel,
+  formatPracticeSessionLabel,
   formatPracticeWeekLabel,
   getPracticeAssignmentKindLabel,
   getPracticeAssignmentsForTeams,
@@ -59,12 +59,12 @@ export default async function PracticeSchedulePage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-center gap-2 text-brand-600">
           <CalendarDays size={18} />
           <p className="text-sm font-semibold uppercase tracking-wider">Practice schedule</p>
         </div>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950">Weekly practice</h1>
+        <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Weekly practice</h1>
         <p className="mt-2 max-w-2xl text-slate-600">
           Review your weekend practice sessions, confirm attendance, and preupload seating charts before each session.
         </p>
@@ -84,7 +84,7 @@ export default async function PracticeSchedulePage() {
             const canUploadCharts = isStaffRole(profile.role) || team.contact_role === "captain";
             return (
               <article key={team.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-slate-950">{team.name}</h2>
                     <p className="mt-1 text-sm text-slate-600">{team.race_categories?.name ?? "Race category pending"}</p>
@@ -93,7 +93,7 @@ export default async function PracticeSchedulePage() {
                     <div className="flex flex-wrap gap-2">
                       {teamAssignments.map((assignment) => (
                         <div key={assignment.id} className="rounded-2xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700">
-                          {getPracticeAssignmentKindLabel(assignment.assignment_kind)}: {formatPracticeSlotLabel(assignment.slot_start_time)}
+                          {getPracticeAssignmentKindLabel(assignment.assignment_kind)}: {formatPracticeSessionLabel(assignment.practice_day, assignment.slot_start_time)}
                         </div>
                       ))}
                     </div>
@@ -105,7 +105,7 @@ export default async function PracticeSchedulePage() {
                 {teamAssignments.length > 0 ? (
                   <div className="mt-4 space-y-4">
                     {teamAssignments.map((assignment) => (
-                      <PracticeSessionTable
+                      <PracticeSessionPanel
                         key={assignment.id}
                         assignment={assignment}
                         attendanceByTeamKindWeek={attendanceByTeamKindWeek}
@@ -133,7 +133,7 @@ function assignmentKindOrder(kind: PracticeAssignmentKind) {
   return kind === "primary" ? 0 : 1;
 }
 
-function PracticeSessionTable({
+function PracticeSessionPanel({
   assignment,
   attendanceByTeamKindWeek,
   chartByTeamKindWeek,
@@ -154,11 +154,58 @@ function PracticeSessionTable({
     <div className="overflow-hidden rounded-2xl border border-slate-200">
       <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
         <p className="text-sm font-bold text-slate-900">
-          {getPracticeAssignmentKindLabel(assignment.assignment_kind)} | {formatPracticeSlotLabel(assignment.slot_start_time)}
+          {getPracticeAssignmentKindLabel(assignment.assignment_kind)} | {formatPracticeSessionLabel(assignment.practice_day, assignment.slot_start_time)}
         </p>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+
+      <div className="divide-y divide-slate-200 md:hidden">
+        {weeks.map((week) => {
+          const weekStart = toDateOnly(week);
+          const key = `${teamId}:${assignment.assignment_kind}:${weekStart}`;
+          const response = attendanceByTeamKindWeek.get(key);
+          const chart = chartByTeamKindWeek.get(key);
+          return (
+            <article key={weekStart} className="space-y-4 p-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Week of</p>
+                <p className="mt-1 font-semibold text-slate-950">{formatPracticeWeekLabel(week)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Response</p>
+                <div className="mt-2">
+                  <ResponseBadge response={response} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Seating chart</p>
+                <div className="mt-2">
+                  <PracticeChartCell
+                    chart={chart}
+                    canUploadCharts={canUploadCharts}
+                    teamId={teamId}
+                    weekStart={weekStart}
+                    assignmentKind={assignment.assignment_kind}
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Action</p>
+                <div className="mt-2">
+                  <PracticeAttendanceActions
+                    canRespond={canRespond}
+                    teamId={teamId}
+                    weekStart={weekStart}
+                    assignmentKind={assignment.assignment_kind}
+                  />
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-white text-xs font-semibold uppercase tracking-wider text-slate-500">
             <tr>
               <th className="px-4 py-3">Week of</th>
@@ -177,49 +224,24 @@ function PracticeSessionTable({
                 <tr key={weekStart}>
                   <td className="px-4 py-3 font-semibold text-slate-900">{formatPracticeWeekLabel(week)}</td>
                   <td className="px-4 py-3">
-                    {response ? (
-                      <span className={response.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
-                        {response.response === "confirmed" ? "Confirmed" : "No attendance"}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">No response yet</span>
-                    )}
+                    <ResponseBadge response={response} />
                   </td>
                   <td className="px-4 py-3 align-top">
-                    {chart ? (
-                      <div className="space-y-2">
-                        <Link href={`/api/practice-seating-charts/${chart.id}/signed-url`} className="font-semibold text-brand-600 hover:text-brand-700">
-                          {chart.file_name}
-                        </Link>
-                        {canUploadCharts ? (
-                          <UploadPracticeSeatingChartForm
-                            teamId={teamId}
-                            weekStart={weekStart}
-                            assignmentKind={assignment.assignment_kind}
-                            compact
-                          />
-                        ) : null}
-                      </div>
-                    ) : canUploadCharts ? (
-                      <UploadPracticeSeatingChartForm
-                        teamId={teamId}
-                        weekStart={weekStart}
-                        assignmentKind={assignment.assignment_kind}
-                        compact
-                      />
-                    ) : (
-                      <span className="text-slate-500">Not uploaded</span>
-                    )}
+                    <PracticeChartCell
+                      chart={chart}
+                      canUploadCharts={canUploadCharts}
+                      teamId={teamId}
+                      weekStart={weekStart}
+                      assignmentKind={assignment.assignment_kind}
+                    />
                   </td>
                   <td className="px-4 py-3">
-                    {canRespond ? (
-                      <div className="flex justify-end gap-2">
-                        <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignment.assignment_kind} response="confirmed" label="Confirm attendance" />
-                        <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignment.assignment_kind} response="no_attendance" label="No attendance" />
-                      </div>
-                    ) : (
-                      <p className="text-right text-slate-500">View only</p>
-                    )}
+                    <PracticeAttendanceActions
+                      canRespond={canRespond}
+                      teamId={teamId}
+                      weekStart={weekStart}
+                      assignmentKind={assignment.assignment_kind}
+                    />
                   </td>
                 </tr>
               );
@@ -228,6 +250,82 @@ function PracticeSessionTable({
         </table>
       </div>
     </div>
+  );
+}
+
+function PracticeChartCell({
+  assignmentKind,
+  canUploadCharts,
+  chart,
+  teamId,
+  weekStart,
+}: {
+  assignmentKind: PracticeAssignmentKind;
+  canUploadCharts: boolean;
+  chart: TeamPracticeSeatingChart | undefined;
+  teamId: string;
+  weekStart: string;
+}) {
+  if (chart) {
+    return (
+      <div className="space-y-2">
+        <Link href={`/api/practice-seating-charts/${chart.id}/signed-url`} className="break-all font-semibold text-brand-600 hover:text-brand-700">
+          {chart.file_name}
+        </Link>
+        {canUploadCharts ? (
+          <UploadPracticeSeatingChartForm
+            teamId={teamId}
+            weekStart={weekStart}
+            assignmentKind={assignmentKind}
+            compact
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (canUploadCharts) {
+    return (
+      <UploadPracticeSeatingChartForm
+        teamId={teamId}
+        weekStart={weekStart}
+        assignmentKind={assignmentKind}
+        compact
+      />
+    );
+  }
+
+  return <span className="text-slate-500">Not uploaded</span>;
+}
+
+function PracticeAttendanceActions({
+  assignmentKind,
+  canRespond,
+  teamId,
+  weekStart,
+}: {
+  assignmentKind: PracticeAssignmentKind;
+  canRespond: boolean;
+  teamId: string;
+  weekStart: string;
+}) {
+  if (!canRespond) return <p className="text-slate-500 md:text-right">View only</p>;
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row md:justify-end">
+      <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignmentKind} response="confirmed" label="Confirm attendance" />
+      <AttendanceButton teamId={teamId} weekStart={weekStart} assignmentKind={assignmentKind} response="no_attendance" label="No attendance" />
+    </div>
+  );
+}
+
+function ResponseBadge({ response }: { response: TeamPracticeAttendance | undefined }) {
+  if (!response) return <span className="text-slate-500">No response yet</span>;
+
+  return (
+    <span className={response.response === "confirmed" ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" : "inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700"}>
+      {response.response === "confirmed" ? "Confirmed" : "No attendance"}
+    </span>
   );
 }
 
@@ -266,7 +364,7 @@ function AttendanceButton({
       <input type="hidden" name="weekStart" value={weekStart} />
       <input type="hidden" name="assignmentKind" value={assignmentKind} />
       <input type="hidden" name="response" value={response} />
-      <button className={response === "confirmed" ? "focus-ring rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700" : "focus-ring rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"}>
+      <button className={response === "confirmed" ? "focus-ring w-full rounded-xl bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700" : "focus-ring w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"}>
         {label}
       </button>
     </form>

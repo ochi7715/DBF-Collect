@@ -114,8 +114,10 @@ export type TeamFormRoster = {
 
 export type PracticeAttendanceStatus = "confirmed" | "no_attendance";
 export type PracticeAssignmentKind = "primary" | "additional";
+export type PracticeDay = "saturday" | "sunday";
 
 export type PracticeSlotCapacity = {
+  practice_day: PracticeDay;
   slot_start_time: string;
   capacity: number;
   created_at: string;
@@ -126,6 +128,7 @@ export type TeamPracticeAssignment = {
   id: string;
   team_id: string;
   assignment_kind: PracticeAssignmentKind;
+  practice_day: PracticeDay;
   slot_start_time: string;
   assigned_by: string | null;
   created_at: string;
@@ -138,6 +141,7 @@ export type TeamPracticeAttendance = {
   team_id: string;
   practice_week_start: string;
   assignment_kind: PracticeAssignmentKind;
+  practice_day: PracticeDay;
   response: PracticeAttendanceStatus;
   responded_by: string | null;
   responded_at: string;
@@ -150,6 +154,7 @@ export type TeamPracticeSeatingChart = {
   team_id: string;
   practice_week_start: string;
   assignment_kind: PracticeAssignmentKind;
+  practice_day: PracticeDay;
   uploaded_by: string | null;
   file_path: string;
   file_name: string;

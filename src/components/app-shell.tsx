@@ -24,7 +24,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[240px_1fr]">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-4 sm:py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
           <nav className="space-y-1">
             <NavLink href="/portal" icon={<Home size={18} />} label="My teams" />
@@ -46,7 +46,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
             ) : null}
           </nav>
         </aside>
-        <main>{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   );

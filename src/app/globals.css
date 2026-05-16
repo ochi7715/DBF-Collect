@@ -9,6 +9,7 @@
 body {
   background: #f5fbf8;
   color: #062318;
+  overflow-x: hidden;
 }
 
 input,
