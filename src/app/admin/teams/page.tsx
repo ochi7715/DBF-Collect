@@ -4,12 +4,17 @@ import { getRaceCategoryRuleSummary } from "@/lib/dragon-boat";
 import { requireStaff } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeSearch } from "@/lib/utils";
+import type { RaceCategory } from "@/lib/types";
 
-export default async function AdminTeamsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function AdminTeamsPage({ searchParams }: { searchParams: Promise<{ q?: string; categoryId?: string }> }) {
   await requireStaff();
-  const { q } = await searchParams;
+  const { q, categoryId } = await searchParams;
   const search = normalizeSearch(q ?? "");
   const supabase = await createSupabaseServerClient();
+  const [{ data: categories }, { data: countRows }] = await Promise.all([
+    supabase.from("race_categories").select("*").order("sort_order", { ascending: true }).order("name", { ascending: true }),
+    supabase.from("teams").select("race_category_id"),
+  ]);
   let query = supabase
     .from("teams")
     .select("*, race_categories(*)")
@@ -19,9 +24,18 @@ export default async function AdminTeamsPage({ searchParams }: { searchParams: P
   if (search) {
     query = query.ilike("name", `%${search}%`);
   }
+  if (categoryId) {
+    query = query.eq("race_category_id", categoryId);
+  }
 
   const { data: teams, error } = await query;
   if (error) throw error;
+  const categoryRows = (categories ?? []) as RaceCategory[];
+  const categoryCounts = new Map<string, number>();
+  for (const row of countRows ?? []) {
+    categoryCounts.set(row.race_category_id, (categoryCounts.get(row.race_category_id) ?? 0) + 1);
+  }
+  const totalTeams = (countRows ?? []).length;
 
   return (
     <section className="space-y-6">
@@ -36,10 +50,43 @@ export default async function AdminTeamsPage({ searchParams }: { searchParams: P
             <Plus size={18} /> New team
           </Link>
         </div>
-        <form className="mt-4 flex max-w-xl gap-2">
-          <input name="q" defaultValue={search} placeholder="Search by team name" className="focus-ring flex-1 rounded-xl border border-slate-300 px-3 py-2" />
+        <form className="mt-4 grid gap-2 md:max-w-3xl md:grid-cols-[minmax(0,1fr)_240px_auto]">
+          <input name="q" defaultValue={search} placeholder="Search by team name" className="focus-ring rounded-xl border border-slate-300 px-3 py-2" />
+          <select name="categoryId" defaultValue={categoryId ?? ""} className="focus-ring rounded-xl border border-slate-300 bg-white px-3 py-2">
+            <option value="">All categories</option>
+            {categoryRows.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
           <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Search</button>
         </form>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Link
+          href={search ? `/admin/teams?q=${encodeURIComponent(search)}` : "/admin/teams"}
+          className={`rounded-3xl border p-5 shadow-sm ${categoryId ? "border-slate-200 bg-white" : "border-brand-200 bg-brand-50"}`}
+        >
+          <p className="text-sm font-semibold text-slate-600">All teams</p>
+          <p className="mt-2 text-3xl font-bold text-slate-950">{totalTeams}</p>
+        </Link>
+        {categoryRows.map((category) => (
+          <Link
+            key={category.id}
+            href={`/admin/teams?${new URLSearchParams({
+              ...(search ? { q: search } : {}),
+              categoryId: category.id,
+            }).toString()}`}
+            className={`rounded-3xl border p-5 shadow-sm ${
+              categoryId === category.id ? "border-brand-200 bg-brand-50" : "border-slate-200 bg-white"
+            }`}
+          >
+            <p className="text-sm font-semibold text-slate-600">{category.name}</p>
+            <p className="mt-2 text-3xl font-bold text-slate-950">{categoryCounts.get(category.id) ?? 0}</p>
+          </Link>
+        ))}
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

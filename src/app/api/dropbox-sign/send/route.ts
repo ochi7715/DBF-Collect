@@ -25,14 +25,17 @@ export async function POST(request: Request) {
 
   const { data: contactRows } = await admin
     .from("team_contacts")
-    .select("profiles(*)")
+    .select("contact_name, contact_email, profiles(*)")
     .eq("team_id", doc.team_id)
     .eq("contact_role", "captain")
     .eq("is_authorized", true)
     .limit(1);
 
-  const captain = contactRows?.[0]?.profiles as any;
-  if (!captain?.email) throw new Error("No authorized team captain email found");
+  const captainRow = contactRows?.[0];
+  const captain = captainRow?.profiles as any;
+  const captainEmail = captainRow?.contact_email ?? captain?.email;
+  const captainName = captainRow?.contact_name ?? captain?.full_name ?? captainEmail;
+  if (!captainEmail) throw new Error("No authorized team captain email found");
 
   const response = await sendDropboxTemplateSignatureRequest({
     templateId: form.dropbox_template_id,
@@ -41,8 +44,8 @@ export async function POST(request: Request) {
     signers: [
       {
         role: "Team Captain",
-        name: captain.full_name ?? captain.email,
-        emailAddress: captain.email,
+        name: captainName,
+        emailAddress: captainEmail,
       },
     ],
     metadata: {
@@ -73,7 +76,7 @@ export async function POST(request: Request) {
     entityType: "dragon_boat_document",
     entityId: documentId,
     action: "dropbox_signature_sent",
-    details: { signatureRequestId, captainEmail: captain.email },
+    details: { signatureRequestId, captainEmail },
     request,
   });
 

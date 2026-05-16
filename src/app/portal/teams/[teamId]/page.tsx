@@ -13,10 +13,10 @@ export default async function TeamManagementPage({
   searchParams,
 }: {
   params: Promise<{ teamId: string }>;
-  searchParams: Promise<{ leadership?: string }>;
+  searchParams: Promise<{ leadership?: string; contact?: string }>;
 }) {
   const { teamId } = await params;
-  const { leadership } = await searchParams;
+  const { leadership, contact } = await searchParams;
   const profile = await requireProfile();
   const allowed = await canCurrentUserAccessTeam(teamId);
   if (!allowed) redirect("/portal");
@@ -49,7 +49,13 @@ export default async function TeamManagementPage({
         {teams.length > 1 ? <TeamSwitcher teams={teams} currentTeamId={teamId} destination="management" /> : null}
       </div>
 
-      <TeamLeadershipPanel teamId={team.id} contacts={(contacts ?? []) as TeamContact[]} currentUserId={profile.id} status={leadership} />
+      <TeamLeadershipPanel
+        teamId={team.id}
+        contacts={(contacts ?? []) as TeamContact[]}
+        currentUserId={profile.id}
+        leadershipStatus={leadership}
+        contactStatus={contact}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <TeamMemberTable
@@ -106,12 +112,14 @@ function TeamLeadershipPanel({
   teamId,
   contacts,
   currentUserId,
-  status,
+  leadershipStatus,
+  contactStatus,
 }: {
   teamId: string;
   contacts: TeamContact[];
   currentUserId: string;
-  status?: string;
+  leadershipStatus?: string;
+  contactStatus?: string;
 }) {
   const currentContact = contacts.find((contact) => contact.profile_id === currentUserId && contact.is_authorized);
   if (!currentContact) return null;
@@ -125,23 +133,7 @@ function TeamLeadershipPanel({
         <p className="mt-1 text-sm text-slate-600">Choose the leadership role you hold for this team.</p>
       </div>
 
-      <div className="grid gap-3 border-b border-slate-200 p-5 md:grid-cols-3">
-        {TEAM_CONTACT_ROLE_OPTIONS.map((role) => {
-          const holder = holderByRole.get(role.value);
-          const isCurrentUser = holder?.profile_id === currentUserId;
-          return (
-            <div key={role.value} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{role.label}</p>
-              <p className="mt-2 font-semibold text-slate-950">
-                {holder?.profiles?.full_name ?? holder?.profiles?.email ?? "Unassigned"}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">{isCurrentUser ? "You" : holder ? "Assigned" : "Available"}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      <form action={`/api/teams/${teamId}/leadership`} method="post" className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
+      <form action={`/api/teams/${teamId}/leadership`} method="post" className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-end">
         <label className="block flex-1">
           <span className="text-sm font-medium text-slate-700">Your role</span>
           <select
@@ -164,12 +156,81 @@ function TeamLeadershipPanel({
         <button className="focus-ring rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Save role</button>
       </form>
 
-      {status === "saved" ? (
+      <div className="grid gap-4 p-5 xl:grid-cols-3">
+        {TEAM_CONTACT_ROLE_OPTIONS.map((role) => {
+          const holder = holderByRole.get(role.value);
+          const isCurrentUser = holder?.profile_id === currentUserId;
+          return (
+            <form
+              key={role.value}
+              action={`/api/teams/${teamId}/contacts/${role.value}`}
+              method="post"
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{role.label}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {holder?.profile_id ? (isCurrentUser ? "Your account linked" : "Account linked") : "Awaiting account"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Full name</span>
+                  <input
+                    name="fullName"
+                    required
+                    defaultValue={holder?.contact_name ?? holder?.profiles?.full_name ?? ""}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Email</span>
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    defaultValue={holder?.contact_email ?? holder?.profiles?.email ?? ""}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Telephone #</span>
+                  <input
+                    name="telephone"
+                    defaultValue={holder?.contact_phone ?? ""}
+                    className="focus-ring mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                  />
+                </label>
+              </div>
+              <button className="focus-ring mt-4 w-full rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100">
+                Save details
+              </button>
+            </form>
+          );
+        })}
+      </div>
+
+      {leadershipStatus === "saved" ? (
         <p className="border-t border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">Leadership role saved.</p>
       ) : null}
-      {status === "occupied" ? (
+      {leadershipStatus === "occupied" ? (
         <p className="border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800">
           That role is already assigned to another contact.
+        </p>
+      ) : null}
+      {contactStatus === "saved" ? (
+        <p className="border-t border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">Leadership contact details saved.</p>
+      ) : null}
+      {contactStatus === "duplicate-account" ? (
+        <p className="border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800">
+          That account is already linked to another role on this team.
+        </p>
+      ) : null}
+      {contactStatus === "duplicate-email" ? (
+        <p className="border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800">
+          That email is already saved for another role on this team.
         </p>
       ) : null}
     </div>

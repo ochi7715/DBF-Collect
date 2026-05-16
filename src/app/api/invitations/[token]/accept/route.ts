@@ -64,17 +64,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     if (profileError) throw profileError;
   }
 
-  const { error: relationshipError } = await admin.from("team_contacts").upsert(
-    {
-      team_id: invitation.team_id,
-      profile_id: user.id,
-      contact_role: invitation.contact_role,
-      is_authorized: true,
-      can_view_documents: invitation.can_view_documents,
-      can_upload_documents: invitation.can_upload_documents,
-    },
-    { onConflict: "team_id,profile_id" }
-  );
+  const { data: existingRoleContact } = await admin
+    .from("team_contacts")
+    .select("id, contact_name, contact_email, contact_phone")
+    .eq("team_id", invitation.team_id)
+    .eq("contact_role", invitation.contact_role)
+    .maybeSingle();
+
+  const relationshipPayload = {
+    team_id: invitation.team_id,
+    profile_id: user.id,
+    contact_role: invitation.contact_role,
+    contact_name: existingRoleContact?.contact_name ?? user.user_metadata?.full_name ?? null,
+    contact_email: userEmail,
+    contact_phone: existingRoleContact?.contact_phone ?? null,
+    is_authorized: true,
+    can_view_documents: invitation.can_view_documents,
+    can_upload_documents: invitation.can_upload_documents,
+  };
+
+  const { error: relationshipError } = existingRoleContact
+    ? await admin.from("team_contacts").update(relationshipPayload).eq("id", existingRoleContact.id)
+    : await admin.from("team_contacts").insert(relationshipPayload);
   if (relationshipError) {
     redirect(`/invite/${token}?error=role`);
   }

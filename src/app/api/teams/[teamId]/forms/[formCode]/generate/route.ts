@@ -34,9 +34,8 @@ export async function POST(
       admin.from("teams").select("*, race_categories(*)").eq("id", teamId).single(),
       admin
         .from("team_contacts")
-        .select("contact_role, profiles(full_name, email)")
-        .eq("team_id", teamId)
-        .eq("is_authorized", true),
+        .select("contact_role, contact_name, contact_email, contact_phone, profiles(full_name, email)")
+        .eq("team_id", teamId),
       admin.from("team_members").select("*").eq("team_id", teamId).order("full_name", { ascending: true }),
       parsedFormCode.data === "B1" || parsedFormCode.data === "B2"
         ? admin
@@ -94,6 +93,9 @@ export async function POST(
   try {
     const normalizedContacts = (contacts ?? []).map((contact) => ({
       contact_role: contact.contact_role,
+      contact_name: contact.contact_name,
+      contact_email: contact.contact_email,
+      contact_phone: contact.contact_phone,
       profiles: Array.isArray(contact.profiles) ? contact.profiles[0] ?? null : contact.profiles,
     }));
     const pdfBytes = await generateFilledPdf({

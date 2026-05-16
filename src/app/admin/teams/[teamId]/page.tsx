@@ -61,7 +61,7 @@ export default async function AdminTeamDetailPage({
 
   const contactRows = (contacts ?? []) as TeamContact[];
   const invitationRows = (invitations ?? []) as TeamInvitation[];
-  const filledRoles = new Set(contactRows.filter((row) => row.is_authorized).map((row) => row.contact_role));
+  const filledRoles = new Set(contactRows.filter((row) => hasSavedContactDetails(row)).map((row) => row.contact_role));
   const pendingRoles = new Set(invitationRows.filter((row) => row.status === "pending").map((row) => row.contact_role));
   const missingRoles = TEAM_CONTACT_ROLE_OPTIONS.filter((role) => !filledRoles.has(role.value) && !pendingRoles.has(role.value));
 
@@ -88,7 +88,7 @@ export default async function AdminTeamDetailPage({
 
       {missingRoles.length > 0 ? (
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
-          Missing portal roles: {missingRoles.map((role) => role.label).join(", ")}.
+          Missing leadership contacts: {missingRoles.map((role) => role.label).join(", ")}.
         </div>
       ) : null}
 
@@ -155,14 +155,18 @@ export default async function AdminTeamDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-950">Authorized team contacts</h2>
+          <h2 className="text-lg font-bold text-slate-950">Leadership contacts</h2>
           <div className="mt-4 space-y-3">
             {contactRows.map((row) => (
               <form key={row.id} action={`/api/admin/teams/${team.id}/contacts/${row.id}`} method="post" className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-col gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900">{row.profiles?.full_name ?? row.profiles?.email}</p>
-                    <p className="text-sm text-slate-600">{row.profiles?.email}</p>
+                    <p className="font-semibold text-slate-900">{getTeamContactName(row)}</p>
+                    <p className="text-sm text-slate-600">{getTeamContactEmail(row)}</p>
+                    {row.contact_phone ? <p className="text-sm text-slate-600">{row.contact_phone}</p> : null}
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {row.profile_id ? "Account linked" : "Awaiting account"}
+                    </p>
                   </div>
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">Portal role</span>
@@ -301,4 +305,16 @@ function getGenerationItems(
       issues: [],
     };
   });
+}
+
+function hasSavedContactDetails(contact: TeamContact) {
+  return Boolean(contact.contact_name || contact.contact_email || contact.profiles?.full_name || contact.profiles?.email);
+}
+
+function getTeamContactName(contact: TeamContact) {
+  return contact.contact_name ?? contact.profiles?.full_name ?? contact.contact_email ?? contact.profiles?.email ?? "Unassigned";
+}
+
+function getTeamContactEmail(contact: TeamContact) {
+  return contact.contact_email ?? contact.profiles?.email ?? "No email saved";
 }

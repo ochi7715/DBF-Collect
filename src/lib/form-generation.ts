@@ -17,6 +17,9 @@ type TeamWithCategory = Team & { race_categories?: RaceCategory | null };
 
 type ContactSummary = {
   contact_role: TeamContactRole;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
   profiles?: {
     full_name: string | null;
     email: string;
@@ -459,20 +462,23 @@ function fillA1(form: PDFForm, page: PDFPage, input: PdfGenerationInput, font: A
   const manager = getContact(input.contacts, "manager");
   const captain = getContact(input.contacts, "captain");
   const coCaptain = getContact(input.contacts, "co_captain");
-  const managerName = splitName(manager?.profiles?.full_name);
-  const captainName = splitName(captain?.profiles?.full_name);
-  const coCaptainName = splitName(coCaptain?.profiles?.full_name);
+  const managerName = splitName(getContactName(manager));
+  const captainName = splitName(getContactName(captain));
+  const coCaptainName = splitName(getContactName(coCaptain));
 
   setText(form, A1_FIELDS.teamName, input.team.name);
   setText(form, A1_FIELDS.managerFirstName, managerName.firstName);
   setText(form, A1_FIELDS.managerLastName, managerName.lastName);
-  setText(form, A1_FIELDS.managerEmail, manager?.profiles?.email ?? "");
+  setText(form, A1_FIELDS.managerPhone, getContactPhone(manager));
+  setText(form, A1_FIELDS.managerEmail, getContactEmail(manager));
   setText(form, A1_FIELDS.captainFirstName, captainName.firstName);
   setText(form, A1_FIELDS.captainLastName, captainName.lastName);
-  setText(form, A1_FIELDS.captainEmail, captain?.profiles?.email ?? "");
+  setText(form, A1_FIELDS.captainPhone, getContactPhone(captain));
+  setText(form, A1_FIELDS.captainEmail, getContactEmail(captain));
   setText(form, A1_FIELDS.coCaptainFirstName, coCaptainName.firstName);
   setText(form, A1_FIELDS.coCaptainLastName, coCaptainName.lastName);
-  setText(form, A1_FIELDS.coCaptainEmail, coCaptain?.profiles?.email ?? "");
+  setText(form, A1_FIELDS.coCaptainPhone, getContactPhone(coCaptain));
+  setText(form, A1_FIELDS.coCaptainEmail, getContactEmail(coCaptain));
 
   const division = normalizeDivisionName(input.team.race_categories?.name);
   const ruleSet = input.team.race_categories?.rule_set;
@@ -492,20 +498,23 @@ function fillA2(form: PDFForm, page: PDFPage, input: PdfGenerationInput, font: A
   const manager = getContact(input.contacts, "manager");
   const captain = getContact(input.contacts, "captain");
   const coCaptain = getContact(input.contacts, "co_captain");
-  const managerName = splitName(manager?.profiles?.full_name);
-  const captainName = splitName(captain?.profiles?.full_name);
-  const coCaptainName = splitName(coCaptain?.profiles?.full_name);
+  const managerName = splitName(getContactName(manager));
+  const captainName = splitName(getContactName(captain));
+  const coCaptainName = splitName(getContactName(coCaptain));
 
   setText(form, A2_FIELDS.teamName, input.team.name);
   setText(form, A2_FIELDS.managerFirstName, managerName.firstName);
   setText(form, A2_FIELDS.managerLastName, managerName.lastName);
-  setText(form, A2_FIELDS.managerEmail, manager?.profiles?.email ?? "");
+  setText(form, A2_FIELDS.managerPhone, getContactPhone(manager));
+  setText(form, A2_FIELDS.managerEmail, getContactEmail(manager));
   setText(form, A2_FIELDS.captainFirstName, captainName.firstName);
   setText(form, A2_FIELDS.captainLastName, captainName.lastName);
-  setText(form, A2_FIELDS.captainEmail, captain?.profiles?.email ?? "");
+  setText(form, A2_FIELDS.captainPhone, getContactPhone(captain));
+  setText(form, A2_FIELDS.captainEmail, getContactEmail(captain));
   setText(form, A2_FIELDS.coCaptainFirstName, coCaptainName.firstName);
   setText(form, A2_FIELDS.coCaptainLastName, coCaptainName.lastName);
-  setText(form, A2_FIELDS.coCaptainEmail, coCaptain?.profiles?.email ?? "");
+  setText(form, A2_FIELDS.coCaptainPhone, getContactPhone(coCaptain));
+  setText(form, A2_FIELDS.coCaptainEmail, getContactEmail(coCaptain));
 
   const division = normalizeDivisionName(input.team.race_categories?.name);
   if (division.includes("corporate") && !division.includes("youth")) markBox(page, font, [107, 686, 120, 699]);
@@ -527,9 +536,9 @@ function fillB1(form: PDFForm, page: PDFPage, input: PdfGenerationInput, font: A
   const captainMember = getCaptainMember(input.members, roster);
 
   setText(form, B1_FIELDS.teamName, input.team.name);
-  setText(form, B1_FIELDS.manager, manager?.profiles?.full_name ?? "");
-  setText(form, B1_FIELDS.captain, captainMember?.full_name ?? getContact(input.contacts, "captain")?.profiles?.full_name ?? "");
-  setText(form, B1_FIELDS.coCaptain, coCaptain?.profiles?.full_name ?? "");
+  setText(form, B1_FIELDS.manager, getContactName(manager));
+  setText(form, B1_FIELDS.captain, captainMember?.full_name ?? getContactName(getContact(input.contacts, "captain")));
+  setText(form, B1_FIELDS.coCaptain, getContactName(coCaptain));
   fillRosterRows(form, "B1", input.members, roster, B1_FIELDS);
 
   const division = normalizeDivisionName(input.team.race_categories?.name);
@@ -545,9 +554,9 @@ function fillB2(form: PDFForm, page: PDFPage, input: PdfGenerationInput, font: A
   const captainMember = getCaptainMember(input.members, roster);
 
   setText(form, B2_FIELDS.teamName, input.team.name);
-  setText(form, B2_FIELDS.manager, manager?.profiles?.full_name ?? "");
-  setText(form, B2_FIELDS.captain, captainMember?.full_name ?? getContact(input.contacts, "captain")?.profiles?.full_name ?? "");
-  setText(form, B2_FIELDS.coCaptain, coCaptain?.profiles?.full_name ?? "");
+  setText(form, B2_FIELDS.manager, getContactName(manager));
+  setText(form, B2_FIELDS.captain, captainMember?.full_name ?? getContactName(getContact(input.contacts, "captain")));
+  setText(form, B2_FIELDS.coCaptain, getContactName(coCaptain));
   fillRosterRows(form, "B2", input.members, roster, B2_FIELDS);
 
   const division = normalizeDivisionName(input.team.race_categories?.name);
@@ -599,6 +608,18 @@ function fillRosterRows(
 
 function getContact(contacts: ContactSummary[], role: TeamContactRole) {
   return contacts.find((contact) => contact.contact_role === role);
+}
+
+function getContactName(contact: ContactSummary | undefined) {
+  return contact?.contact_name ?? contact?.profiles?.full_name ?? "";
+}
+
+function getContactEmail(contact: ContactSummary | undefined) {
+  return contact?.contact_email ?? contact?.profiles?.email ?? "";
+}
+
+function getContactPhone(contact: ContactSummary | undefined) {
+  return contact?.contact_phone ?? "";
 }
 
 function getCaptainMember(members: TeamMember[], roster: RosterGenerationInput) {

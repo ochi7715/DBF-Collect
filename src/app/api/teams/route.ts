@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     team_id: team.id,
     profile_id: profile.id,
     contact_role: "captain",
+    contact_name: profile.full_name,
+    contact_email: profile.email,
     is_authorized: true,
     can_view_documents: true,
     can_upload_documents: true,

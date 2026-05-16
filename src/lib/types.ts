@@ -54,8 +54,11 @@ export type Team = {
 export type TeamContact = {
   id: string;
   team_id: string;
-  profile_id: string;
+  profile_id: string | null;
   contact_role: TeamContactRole;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   is_authorized: boolean;
   can_view_documents: boolean;
   can_upload_documents: boolean;

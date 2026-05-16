@@ -164,8 +164,11 @@ create table if not exists public.teams (
 create table if not exists public.team_contacts (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references public.teams(id) on delete cascade,
-  profile_id uuid not null references public.profiles(id) on delete cascade,
+  profile_id uuid references public.profiles(id) on delete set null,
   contact_role public.team_contact_role not null,
+  contact_name text,
+  contact_email text,
+  contact_phone text,
   is_authorized boolean not null default true,
   can_view_documents boolean not null default true,
   can_upload_documents boolean not null default true,
@@ -173,6 +176,19 @@ create table if not exists public.team_contacts (
   unique(team_id, profile_id),
   unique(team_id, contact_role)
 );
+
+alter table public.team_contacts
+  alter column profile_id drop not null,
+  add column if not exists contact_name text,
+  add column if not exists contact_email text,
+  add column if not exists contact_phone text;
+
+alter table public.team_contacts
+  drop constraint if exists team_contacts_profile_id_fkey;
+
+alter table public.team_contacts
+  add constraint team_contacts_profile_id_fkey
+  foreign key (profile_id) references public.profiles(id) on delete set null;
 
 create table if not exists public.team_invitations (
   id uuid primary key default gen_random_uuid(),
@@ -363,6 +379,10 @@ alter table public.audit_logs
 create index if not exists idx_teams_category_id on public.teams(race_category_id);
 create index if not exists idx_team_contacts_team_id on public.team_contacts(team_id);
 create index if not exists idx_team_contacts_profile_id on public.team_contacts(profile_id);
+drop index if exists public.idx_team_contacts_contact_email_lower;
+create unique index if not exists idx_team_contacts_team_email_unique
+  on public.team_contacts(team_id, lower(contact_email))
+  where contact_email is not null;
 create index if not exists idx_team_invitations_token on public.team_invitations(token);
 create index if not exists idx_team_invitations_team_status on public.team_invitations(team_id, status);
 create index if not exists idx_team_members_team_id on public.team_members(team_id);
@@ -542,6 +562,15 @@ begin
         avatar_path = coalesce(public.profiles.avatar_path, excluded.avatar_path),
         updated_at = now();
 
+  update public.team_contacts
+  set profile_id = new.id,
+      contact_name = coalesce(public.team_contacts.contact_name, new.raw_user_meta_data->>'full_name'),
+      contact_email = coalesce(public.team_contacts.contact_email, lower(new.email)),
+      is_authorized = true
+  where public.team_contacts.profile_id is null
+    and public.team_contacts.contact_email is not null
+    and lower(public.team_contacts.contact_email) = lower(new.email);
+
   return new;
 end;
 $$;
@@ -568,6 +597,21 @@ on conflict (id) do update
       avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
       avatar_path = coalesce(public.profiles.avatar_path, excluded.avatar_path),
       updated_at = now();
+
+update public.team_contacts tc
+set contact_name = coalesce(tc.contact_name, p.full_name),
+    contact_email = coalesce(tc.contact_email, p.email)
+from public.profiles p
+where tc.profile_id = p.id;
+
+update public.team_contacts tc
+set profile_id = p.id,
+    contact_name = coalesce(tc.contact_name, p.full_name),
+    is_authorized = true
+from public.profiles p
+where tc.profile_id is null
+  and tc.contact_email is not null
+  and lower(tc.contact_email) = lower(p.email);
 
 alter table public.profiles enable row level security;
 alter table public.race_categories enable row level security;
