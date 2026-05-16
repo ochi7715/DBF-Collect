@@ -3,7 +3,7 @@ import path from "node:path";
 import { PDFDocument, StandardFonts, type PDFForm, type PDFPage } from "pdf-lib";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
-  getRosterPaddlerSeatKeys,
+  getRosterCaptainSeatKeys,
   getRosterRequiredSeatKeys,
   getRosterSeatDefinitions,
   hasCompleteRosterProfile,
@@ -394,12 +394,12 @@ export function validateRosterForGeneration(input: {
   const memberById = new Map(input.members.map((member) => [member.id, member]));
   const seatDefinitions = getRosterSeatDefinitions(input.formCode);
   const validSeatKeys = new Set(seatDefinitions.map((seat) => seat.key));
-  const paddlerSeatKeys = new Set(getRosterPaddlerSeatKeys(input.formCode));
+  const captainSeatKeys = new Set(getRosterCaptainSeatKeys(input.formCode));
   const requiredSeatKeys = getRosterRequiredSeatKeys(input.formCode);
   const seenMemberIds = new Set<string>();
   const problems: string[] = [];
 
-  if (!input.roster.captainSeatKey || !paddlerSeatKeys.has(input.roster.captainSeatKey)) {
+  if (!input.roster.captainSeatKey || !captainSeatKeys.has(input.roster.captainSeatKey)) {
     problems.push("Choose a captain seat.");
   }
 
@@ -428,7 +428,7 @@ export function validateRosterForGeneration(input: {
   }
 
   if (input.roster.captainSeatKey && !input.roster.layout[input.roster.captainSeatKey]) {
-    problems.push("The captain marker must be placed on an occupied paddler seat.");
+    problems.push("The captain marker must be placed on an occupied seat.");
   }
 
   return [...new Set(problems)];
@@ -587,11 +587,12 @@ function fillRosterRows(
   const orderedSeats = getRosterSeatDefinitions(formCode);
   const paddlerSeatKeys = orderedSeats.filter((seat) => seat.kind === "paddler").map((seat) => seat.key);
   const nonPaddlerSeatKeys = orderedSeats.filter((seat) => seat.kind !== "paddler").map((seat) => seat.key);
-  const captainSeatKey = roster.captainSeatKey && paddlerSeatKeys.includes(roster.captainSeatKey) ? roster.captainSeatKey : paddlerSeatKeys[0];
+  const captainSeatKeys = getRosterCaptainSeatKeys(formCode);
+  const captainSeatKey = roster.captainSeatKey && captainSeatKeys.includes(roster.captainSeatKey) ? roster.captainSeatKey : paddlerSeatKeys[0];
   const rowSeatKeys = [
     captainSeatKey,
     ...paddlerSeatKeys.filter((seatKey) => seatKey !== captainSeatKey),
-    ...nonPaddlerSeatKeys,
+    ...nonPaddlerSeatKeys.filter((seatKey) => seatKey !== captainSeatKey),
   ];
 
   rowSeatKeys.forEach((seatKey, index) => {

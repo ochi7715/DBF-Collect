@@ -3,7 +3,7 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  getRosterPaddlerSeatKeys,
+  getRosterCaptainSeatKeys,
   sanitizeRosterLayout,
   type RosterFormCode,
 } from "@/lib/roster-config";
@@ -39,9 +39,9 @@ export async function PUT(
   if (!parsedPayload.success) return NextResponse.json({ error: "Invalid roster payload" }, { status: 400 });
 
   const sanitizedLayout = sanitizeRosterLayout(parsedFormCode.data, parsedPayload.data.layout);
-  const paddlerSeatKeys = new Set(getRosterPaddlerSeatKeys(parsedFormCode.data));
-  if (parsedPayload.data.captainSeatKey && !paddlerSeatKeys.has(parsedPayload.data.captainSeatKey)) {
-    return NextResponse.json({ error: "Captain must be assigned to a paddler seat" }, { status: 400 });
+  const captainSeatKeys = new Set(getRosterCaptainSeatKeys(parsedFormCode.data));
+  if (parsedPayload.data.captainSeatKey && !captainSeatKeys.has(parsedPayload.data.captainSeatKey)) {
+    return NextResponse.json({ error: "Captain must be assigned to a crew seat" }, { status: 400 });
   }
 
   const roster = await upsertTeamFormRoster({

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type DragEvent } from "react";
 import { Save, Star, Users } from "lucide-react";
-import { getRosterSeatDefinitions, hasCompleteRosterProfile, type SeatDefinition } from "@/lib/roster-config";
+import { getRosterCaptainSeatKeys, getRosterSeatDefinitions, hasCompleteRosterProfile, type SeatDefinition } from "@/lib/roster-config";
 import { cn } from "@/lib/utils";
 import type { TeamFormRoster, TeamMember } from "@/lib/types";
 
@@ -62,6 +62,7 @@ function RosterEditor({
   const paddlerSeats = seats.filter((seat) => seat.kind === "paddler");
   const alternateSeats = seats.filter((seat) => seat.kind === "alternate");
   const specialtySeats = seats.filter((seat) => seat.kind === "drummer" || seat.kind === "steersperson");
+  const captainSeatKeys = useMemo(() => new Set(getRosterCaptainSeatKeys(formCode)), [formCode]);
   const [layout, setLayout] = useState<Layout>(initialRoster?.layout ?? {});
   const [captainSeatKey, setCaptainSeatKey] = useState<string | null>(
     initialRoster?.captain_seat_key ?? paddlerSeats[0]?.key ?? null
@@ -95,7 +96,7 @@ function RosterEditor({
     setLayout((current) => ({ ...current, [seatKey]: null }));
   }
 
-  function handleSeatDrop(event: DragEvent<HTMLDivElement>, seatKey: string, kind: string) {
+  function handleSeatDrop(event: DragEvent<HTMLDivElement>, seatKey: string) {
     if (!canUpload) return;
     event.preventDefault();
     const payload = parseDragPayload(event.dataTransfer.getData("text/plain"));
@@ -104,7 +105,7 @@ function RosterEditor({
     if (payload.type === "member") {
       assignMember(seatKey, payload.memberId);
     }
-    if (payload.type === "captain" && kind === "paddler") {
+    if (payload.type === "captain" && captainSeatKeys.has(seatKey)) {
       setCaptainSeatKey(seatKey);
     }
   }
@@ -135,7 +136,7 @@ function RosterEditor({
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-600">Roster layout</p>
           <h3 className="mt-1 text-xl font-bold text-slate-950">Form {formCode}</h3>
           <p className="mt-2 text-sm text-slate-600">
-            Fill every required seat. Alternates may stay empty. Drag the star to the captain&apos;s paddler seat.
+            Fill every required seat. Alternates may stay empty. Drag the star to the captain&apos;s seat.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -163,6 +164,7 @@ function RosterEditor({
                 canUpload={canUpload}
                 onDrop={handleSeatDrop}
                 onClear={clearSeat}
+                onMoveCaptain={setCaptainSeatKey}
               />
 
               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -188,6 +190,7 @@ function RosterEditor({
                   canUpload={canUpload}
                   onDrop={handleSeatDrop}
                   onClear={clearSeat}
+                  onMoveCaptain={setCaptainSeatKey}
                 />
               </div>
             </div>
@@ -251,13 +254,14 @@ function SeatDropZone({
   member?: TeamMember;
   captainSeatKey: string | null;
   canUpload: boolean;
-  onDrop: (event: DragEvent<HTMLDivElement>, seatKey: string, kind: string) => void;
+  onDrop: (event: DragEvent<HTMLDivElement>, seatKey: string) => void;
   onClear: (seatKey: string) => void;
   onMoveCaptain?: (seatKey: string) => void;
 }) {
   if (!seat) return null;
   const isCaptainSeat = captainSeatKey === seat.key;
-  const displayLabel = isCaptainSeat && seat.kind === "paddler" ? "Captain" : seat.label;
+  const canBeCaptain = seat.kind === "paddler" || seat.kind === "drummer" || seat.kind === "steersperson";
+  const displayLabel = isCaptainSeat ? "Captain" : seat.label;
 
   return (
     <div
@@ -265,7 +269,7 @@ function SeatDropZone({
       onDragOver={(event) => {
         if (canUpload) event.preventDefault();
       }}
-      onDrop={(event) => onDrop(event, seat.key, seat.kind)}
+      onDrop={(event) => onDrop(event, seat.key)}
       className={cn(
         "relative min-h-20 rounded-xl border border-slate-300 bg-white p-3 shadow-sm transition",
         seat.required ? "border-slate-300" : "border-dashed",
@@ -277,7 +281,7 @@ function SeatDropZone({
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{displayLabel}</p>
           <p className="mt-1 text-sm font-semibold text-slate-900">{member?.full_name ?? "Drop member here"}</p>
         </div>
-        {seat.kind === "paddler" ? (
+        {canBeCaptain ? (
           <button
             type="button"
             draggable={canUpload}

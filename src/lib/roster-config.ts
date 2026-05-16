@@ -64,6 +64,12 @@ export function getRosterPaddlerSeatKeys(formCode: RosterFormCode) {
     .map((seat) => seat.key);
 }
 
+export function getRosterCaptainSeatKeys(formCode: RosterFormCode) {
+  return getRosterSeatDefinitions(formCode)
+    .filter((seat) => seat.kind === "paddler" || seat.kind === "drummer" || seat.kind === "steersperson")
+    .map((seat) => seat.key);
+}
+
 export function sanitizeRosterLayout(formCode: RosterFormCode, layout: Record<string, string | null> | null | undefined) {
   const validSeats = new Set(getRosterSeatDefinitions(formCode).map((seat) => seat.key));
   const sanitized: Record<string, string | null> = {};
